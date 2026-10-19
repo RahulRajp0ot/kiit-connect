@@ -105,6 +105,7 @@ public class ProfileService {
                 .active(user.isActive())
                 .profileComplete(user.isProfileComplete())
                 .role(user.getRole())
+                .customDailySwipeLimit(user.getCustomDailySwipeLimit())
                 .build();
     }
 }

@@ -39,11 +39,11 @@ import { AuthService } from '../../core/services/auth.service';
                 <mat-icon matSuffix>badge</mat-icon>
               </mat-form-field>
               <mat-form-field appearance="outline" class="full-width">
-                <mat-label>KIIT Email</mat-label>
+                <mat-label>College Email</mat-label>
                 <input matInput formControlName="email" type="email" placeholder="you@kiit.ac.in">
                 <mat-icon matSuffix>email</mat-icon>
-                <mat-error *ngIf="registerForm.get('email')?.hasError('pattern')">
-                  Only &#64;kiit.ac.in email addresses allowed
+                <mat-error *ngIf="registerForm.get('email')?.hasError('email')">
+                  Please enter a valid college email address
                 </mat-error>
               </mat-form-field>
               <mat-form-field appearance="outline" class="full-width">
@@ -110,8 +110,7 @@ export class RegisterComponent {
     this.maxDate.setFullYear(this.maxDate.getFullYear() - 17);
     this.registerForm = fb.group({
       name: ['', [Validators.required, Validators.minLength(2)]],
-      email: ['', [Validators.required,
-        Validators.pattern(/^[a-zA-Z0-9._%+-]+@kiit\.ac\.in$/)]],
+      email: ['', [Validators.required, Validators.email]],
       password: ['', [Validators.required, Validators.minLength(8)]],
       gender: ['', Validators.required],
       dateOfBirth: ['', Validators.required]

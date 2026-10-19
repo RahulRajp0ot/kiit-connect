@@ -14,8 +14,6 @@ public class RegisterRequest {
 
     @Email
     @NotBlank
-    @Pattern(regexp = "^[a-zA-Z0-9._%+-]+@kiit\\.ac\\.in$",
-             message = "Only KIIT university email addresses (@kiit.ac.in) are allowed")
     private String email;
 
     @NotBlank

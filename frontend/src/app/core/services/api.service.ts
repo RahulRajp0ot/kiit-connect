@@ -85,12 +85,24 @@ export class ApiService {
   adminDelete(id: number): Observable<void> {
     return this.http.delete<void>(`${this.base}/admin/users/${id}`);
   }
-  /** @deprecated use adminGetUsers */
-  getAllUsers(): Observable<any[]> { return this.adminGetUsers(); }
-  /** @deprecated use adminDeactivate */
-  deactivateUser(id: number): Observable<void> { return this.adminDeactivate(id); }
-  /** @deprecated use adminActivate */
-  activateUser(id: number): Observable<void> { return this.adminActivate(id); }
-  /** @deprecated use adminDelete */
-  deleteUser(id: number): Observable<void> { return this.adminDelete(id); }
+  adminSetUserLimit(userId: number, limit: number | null): Observable<any> {
+    return this.http.put(`${this.base}/admin/users/${userId}/limit`, { limit });
+  }
+
+  // Admin Settings
+  adminGetSettings(): Observable<any> {
+    return this.http.get(`${this.base}/admin/settings`);
+  }
+  adminUpdateMatching(enabled: boolean, message: string): Observable<any> {
+    return this.http.put(`${this.base}/admin/settings/matching`, { enabled, message });
+  }
+  adminUpdateDefaultLimit(limit: number): Observable<any> {
+    return this.http.put(`${this.base}/admin/settings/limit`, { limit });
+  }
+  adminAddDomain(domain: string): Observable<any> {
+    return this.http.post(`${this.base}/admin/settings/domains`, { domain });
+  }
+  adminRemoveDomain(domain: string): Observable<any> {
+    return this.http.delete(`${this.base}/admin/settings/domains/${encodeURIComponent(domain)}`);
+  }
 }

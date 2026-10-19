@@ -60,6 +60,9 @@ public class User implements UserDetails {
     private boolean active = true;
     private boolean profileComplete = false;
 
+    // Specific limit set by admin; if null, user follows global default
+    private Integer customDailySwipeLimit;
+
     @Column(updatable = false)
     private LocalDateTime createdAt;
 

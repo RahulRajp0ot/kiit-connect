@@ -1,6 +1,7 @@
 package com.kiit.dating.service;
 
 import com.kiit.dating.dto.UserDTO;
+import com.kiit.dating.entity.AppSettings;
 import com.kiit.dating.entity.Like;
 import com.kiit.dating.entity.Match;
 import com.kiit.dating.entity.User;
@@ -15,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -23,15 +25,20 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class DiscoveryService {
 
-    public static final int DAILY_SWIPE_LIMIT = 5;
-
     private final UserRepository userRepository;
     private final LikeRepository likeRepository;
     private final MatchRepository matchRepository;
     private final UserSwipeRepository userSwipeRepository;
     private final ProfileService profileService;
+    private final AdminSettingsService adminSettingsService;
 
     public List<UserDTO> getDiscoverableUsers(Long currentUserId) {
+        AppSettings settings = adminSettingsService.getSettings();
+        if (!settings.isMatchingEnabled()) {
+            // Matching is disabled by admin
+            return Collections.emptyList();
+        }
+
         User current = userRepository.findById(currentUserId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
         return userRepository.findDiscoverableUsers(currentUserId, current.getGender())
@@ -40,10 +47,21 @@ public class DiscoveryService {
                 .toList();
     }
 
+    public int getUserDailySwipeLimit(User user) {
+        if (user.getCustomDailySwipeLimit() != null && user.getCustomDailySwipeLimit() > 0) {
+            return user.getCustomDailySwipeLimit();
+        }
+        return adminSettingsService.getSettings().getDefaultDailySwipeLimit();
+    }
+
     public Map<String, Object> getSwipeLimitStatus(Long userId) {
+        AppSettings settings = adminSettingsService.getSettings();
+        User user = userRepository.findById(userId).orElseThrow();
+        int userLimit = getUserDailySwipeLimit(user);
+
         LocalDateTime since = LocalDateTime.now().minusHours(24);
         long used = userSwipeRepository.countByFromUser_IdAndCreatedAtAfter(userId, since);
-        long remaining = Math.max(0, DAILY_SWIPE_LIMIT - used);
+        long remaining = Math.max(0, userLimit - used);
         boolean limitReached = remaining <= 0;
 
         long resetInMinutes = 0L;
@@ -57,7 +75,11 @@ public class DiscoveryService {
         }
 
         Map<String, Object> status = new HashMap<>();
-        status.put("maxLimit", DAILY_SWIPE_LIMIT);
+        status.put("matchingEnabled", settings.isMatchingEnabled());
+        status.put("matchingDisabledMessage", settings.getMatchingDisabledMessage());
+        status.put("maxLimit", userLimit);
+        status.put("defaultLimit", settings.getDefaultDailySwipeLimit());
+        status.put("hasCustomLimit", user.getCustomDailySwipeLimit() != null);
         status.put("swipesUsed", used);
         status.put("swipesRemaining", remaining);
         status.put("limitReached", limitReached);
@@ -67,18 +89,27 @@ public class DiscoveryService {
 
     @Transactional
     public Map<String, Object> swipeLike(Long fromUserId, Long toUserId) {
-        // Enforce 24-hour daily limit
-        LocalDateTime since = LocalDateTime.now().minusHours(24);
-        long used = userSwipeRepository.countByFromUser_IdAndCreatedAtAfter(fromUserId, since);
-        if (used >= DAILY_SWIPE_LIMIT) {
-            Map<String, Object> err = new HashMap<>(getSwipeLimitStatus(fromUserId));
-            err.put("status", "limit_reached");
-            err.put("error", "Daily limit reached! You can swipe only " + DAILY_SWIPE_LIMIT + " profiles per 24 hours.");
-            return err;
+        AppSettings settings = adminSettingsService.getSettings();
+        if (!settings.isMatchingEnabled()) {
+            Map<String, Object> res = new HashMap<>();
+            res.put("status", "matching_disabled");
+            res.put("message", settings.getMatchingDisabledMessage());
+            return res;
         }
 
         User fromUser = userRepository.findById(fromUserId).orElseThrow();
         User toUser = userRepository.findById(toUserId).orElseThrow();
+        int userLimit = getUserDailySwipeLimit(fromUser);
+
+        // Enforce 24-hour limit
+        LocalDateTime since = LocalDateTime.now().minusHours(24);
+        long used = userSwipeRepository.countByFromUser_IdAndCreatedAtAfter(fromUserId, since);
+        if (used >= userLimit) {
+            Map<String, Object> err = new HashMap<>(getSwipeLimitStatus(fromUserId));
+            err.put("status", "limit_reached");
+            err.put("error", "Daily limit reached! You can swipe only " + userLimit + " profiles per 24 hours.");
+            return err;
+        }
 
         // Record the swipe action
         userSwipeRepository.save(UserSwipe.builder()
@@ -92,7 +123,7 @@ public class DiscoveryService {
             likeRepository.save(Like.builder().fromUser(fromUser).toUser(toUser).build());
         }
 
-        long remaining = Math.max(0, DAILY_SWIPE_LIMIT - (used + 1));
+        long remaining = Math.max(0, userLimit - (used + 1));
         Map<String, Object> response = new HashMap<>();
         response.put("swipesRemaining", remaining);
 
@@ -116,18 +147,27 @@ public class DiscoveryService {
 
     @Transactional
     public Map<String, Object> swipeDislike(Long fromUserId, Long toUserId) {
-        // Enforce 24-hour daily limit
-        LocalDateTime since = LocalDateTime.now().minusHours(24);
-        long used = userSwipeRepository.countByFromUser_IdAndCreatedAtAfter(fromUserId, since);
-        if (used >= DAILY_SWIPE_LIMIT) {
-            Map<String, Object> err = new HashMap<>(getSwipeLimitStatus(fromUserId));
-            err.put("status", "limit_reached");
-            err.put("error", "Daily limit reached! You can swipe only " + DAILY_SWIPE_LIMIT + " profiles per 24 hours.");
-            return err;
+        AppSettings settings = adminSettingsService.getSettings();
+        if (!settings.isMatchingEnabled()) {
+            Map<String, Object> res = new HashMap<>();
+            res.put("status", "matching_disabled");
+            res.put("message", settings.getMatchingDisabledMessage());
+            return res;
         }
 
         User fromUser = userRepository.findById(fromUserId).orElseThrow();
         User toUser = userRepository.findById(toUserId).orElseThrow();
+        int userLimit = getUserDailySwipeLimit(fromUser);
+
+        // Enforce 24-hour limit
+        LocalDateTime since = LocalDateTime.now().minusHours(24);
+        long used = userSwipeRepository.countByFromUser_IdAndCreatedAtAfter(fromUserId, since);
+        if (used >= userLimit) {
+            Map<String, Object> err = new HashMap<>(getSwipeLimitStatus(fromUserId));
+            err.put("status", "limit_reached");
+            err.put("error", "Daily limit reached! You can swipe only " + userLimit + " profiles per 24 hours.");
+            return err;
+        }
 
         // Record the swipe action so disliked user is never shown again & counts toward limit
         userSwipeRepository.save(UserSwipe.builder()
@@ -136,7 +176,7 @@ public class DiscoveryService {
                 .action(UserSwipe.Action.DISLIKE)
                 .build());
 
-        long remaining = Math.max(0, DAILY_SWIPE_LIMIT - (used + 1));
+        long remaining = Math.max(0, userLimit - (used + 1));
         Map<String, Object> response = new HashMap<>();
         response.put("status", "disliked");
         response.put("swipesRemaining", remaining);

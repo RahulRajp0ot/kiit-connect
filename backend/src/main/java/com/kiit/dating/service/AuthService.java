@@ -20,8 +20,14 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
     private final AuthenticationManager authenticationManager;
+    private final AdminSettingsService adminSettingsService;
 
     public AuthResponse register(RegisterRequest request) {
+        if (!adminSettingsService.isEmailDomainAllowed(request.getEmail())) {
+            throw new IllegalArgumentException("Registration is restricted to college email domains: "
+                    + adminSettingsService.getSettings().getAllowedDomains());
+        }
+
         if (userRepository.existsByEmail(request.getEmail())) {
             throw new IllegalArgumentException("Email already registered");
         }

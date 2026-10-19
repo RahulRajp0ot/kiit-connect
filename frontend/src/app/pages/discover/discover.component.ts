@@ -34,33 +34,75 @@ import { trigger, state, style, animate, transition } from '@angular/animations'
           <h1 class="header-title">Discover</h1>
           <p class="header-subtitle">Find your match on KIIT campus 💕</p>
 
-          <!-- 24-Hour Swipe Limit Indicator Badge -->
-          <div class="limit-pill" [class.warning]="limitStatus.swipesRemaining <= 2" [class.exhausted]="limitStatus.limitReached">
+          <!-- Status Indicator Badge -->
+          <div class="limit-pill" *ngIf="limitStatus.matchingEnabled"
+               [class.warning]="limitStatus.swipesRemaining <= 2"
+               [class.exhausted]="limitStatus.limitReached">
             <mat-icon class="limit-icon">{{ limitStatus.limitReached ? 'lock_clock' : 'bolt' }}</mat-icon>
             <span *ngIf="!limitStatus.limitReached">
-              <strong>{{ limitStatus.swipesRemaining }}</strong> / 5 swipes left today
+              <strong>{{ limitStatus.swipesRemaining }}</strong> / {{ limitStatus.maxLimit || 5 }} swipes left today
             </span>
             <span *ngIf="limitStatus.limitReached">
-              Daily Limit Reached (0/5 left)
+              Daily Limit Reached (0/{{ limitStatus.maxLimit || 5 }} left)
             </span>
+          </div>
+
+          <div class="limit-pill paused-pill" *ngIf="!limitStatus.matchingEnabled && !loading">
+            <mat-icon class="limit-icon">pause_circle</mat-icon>
+            <span>Matching is Paused</span>
           </div>
         </div>
 
-        <!-- Loading State -->
+        <!-- 1. Loading State -->
         <div class="state-card" *ngIf="loading">
           <mat-spinner diameter="44" color="accent"></mat-spinner>
-          <p class="state-text">Finding students near you...</p>
+          <p class="state-text">Loading campus profiles...</p>
         </div>
 
-        <!-- 24-HOUR DAILY LIMIT REACHED CARD -->
-        <div class="state-card limit-card" *ngIf="!loading && limitStatus.limitReached">
+        <!-- 2. MATCHING DISABLED BY ADMIN CARD -->
+        <div class="state-card paused-card" *ngIf="!loading && !limitStatus.matchingEnabled">
+          <div class="speaker-icon-wrap">
+            <mat-icon class="huge-icon speaker">campaign</mat-icon>
+          </div>
+          <div class="status-badge-chip">
+            <mat-icon class="badge-icon">lock</mat-icon>
+            <span>Matching is Temporarily Paused</span>
+          </div>
+
+          <h2 class="empty-title">Matching Not Active Yet</h2>
+
+          <!-- Admin's Exact Announcement Comment Box -->
+          <div class="announcement-quote-box">
+            <mat-icon class="quote-mark">format_quote</mat-icon>
+            <p class="quote-text">{{ limitStatus.matchingDisabledMessage || 'Campus matching will go live soon once more students register!' }}</p>
+            <span class="quote-author">— KIIT Dating Administration</span>
+          </div>
+
+          <p class="empty-desc">
+            Profiles are currently being created & verified. Complete your profile photos and bio now so you match immediately when matching goes live!
+          </p>
+
+          <div class="limit-actions-row">
+            <button mat-raised-button color="primary" routerLink="/profile" class="limit-btn">
+              <mat-icon>edit</mat-icon>
+              <span>Complete My Profile</span>
+            </button>
+            <button mat-button class="profile-link-btn" (click)="loadAll()">
+              <mat-icon>refresh</mat-icon>
+              <span>Refresh Status</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- 3. DAILY SWIPE LIMIT REACHED CARD -->
+        <div class="state-card limit-card" *ngIf="!loading && limitStatus.matchingEnabled && limitStatus.limitReached">
           <div class="lock-icon-wrap">
             <mat-icon class="huge-icon">hourglass_empty</mat-icon>
           </div>
           <h2 class="empty-title">Daily Limit Reached!</h2>
           <p class="empty-desc">
-            You can swipe a maximum of <strong>5 profiles in 24 hours</strong>.
-            This ensures thoughtful connections and better matches for everyone on campus!
+            You've used all <strong>{{ limitStatus.maxLimit || 5 }} profiles</strong> for your 24-hour cycle.
+            This ensures thoughtful connections for everyone on campus!
           </p>
 
           <div class="reset-time-box" *ngIf="limitStatus.resetInMinutes > 0">
@@ -80,21 +122,21 @@ import { trigger, state, style, animate, transition } from '@angular/animations'
           </div>
         </div>
 
-        <!-- Empty State (Limit not reached, but no more profiles in feed) -->
-        <div class="state-card empty-card" *ngIf="!loading && !limitStatus.limitReached && (!users || users.length === 0 || currentIndex >= users.length)">
+        <!-- 4. Empty State (Matching is on, limit not reached, but all seen) -->
+        <div class="state-card empty-card" *ngIf="!loading && limitStatus.matchingEnabled && !limitStatus.limitReached && (!users || users.length === 0 || currentIndex >= users.length)">
           <div class="empty-icon-wrap">
             <mat-icon class="huge-icon">favorite_border</mat-icon>
           </div>
           <h2 class="empty-title">You've seen everyone!</h2>
           <p class="empty-desc">Check back later when more KIIT students sign up.</p>
-          <button mat-raised-button color="primary" class="reload-btn" (click)="loadUsers()">
+          <button mat-raised-button color="primary" class="reload-btn" (click)="loadAll()">
             <mat-icon>refresh</mat-icon>
             <span>Refresh Feed</span>
           </button>
         </div>
 
-        <!-- Active Swipe Card Stack -->
-        <div class="card-area" *ngIf="!loading && !limitStatus.limitReached && users && users.length > 0 && currentIndex < users.length">
+        <!-- 5. Active Swipe Card Stack -->
+        <div class="card-area" *ngIf="!loading && limitStatus.matchingEnabled && !limitStatus.limitReached && users && users.length > 0 && currentIndex < users.length">
           <div class="card-wrapper" [@cardAnim]="cardState">
             <div class="tinder-card">
               <!-- Profile Photo & Gradient Overlay -->
@@ -219,7 +261,7 @@ import { trigger, state, style, animate, transition } from '@angular/animations'
       margin-bottom: 12px;
     }
 
-    /* 24-Hour Swipe Limit Pill */
+    /* Limit & Status Pills */
     .limit-pill {
       display: inline-flex;
       align-items: center;
@@ -247,6 +289,12 @@ import { trigger, state, style, animate, transition } from '@angular/animations'
       border-color: #fecaca;
     }
 
+    .limit-pill.paused-pill {
+      background: #fff7ed;
+      color: #ea580c;
+      border-color: #ffedd5;
+    }
+
     .limit-icon {
       font-size: 18px;
       width: 18px;
@@ -267,6 +315,89 @@ import { trigger, state, style, animate, transition } from '@angular/animations'
       border: 1px solid #f1f5f9;
       width: 100%;
       margin-top: 20px;
+    }
+
+    /* Paused Screen Specifics */
+    .paused-card {
+      background: linear-gradient(180deg, #ffffff 0%, #fffbf5 100%);
+      border: 2px solid #fde68a;
+    }
+
+    .speaker-icon-wrap {
+      width: 84px;
+      height: 84px;
+      border-radius: 50%;
+      background: #fef3c7;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 16px;
+    }
+
+    .huge-icon.speaker {
+      font-size: 44px;
+      width: 44px;
+      height: 44px;
+      color: #d97706;
+    }
+
+    .status-badge-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: #fef3c7;
+      color: #b45309;
+      font-size: 0.78rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+      padding: 4px 12px;
+      border-radius: 9999px;
+      margin-bottom: 12px;
+    }
+
+    .badge-icon {
+      font-size: 14px;
+      width: 14px;
+      height: 14px;
+    }
+
+    /* Announcement Quote Box */
+    .announcement-quote-box {
+      background: white;
+      border-left: 4px solid #f59e0b;
+      border-radius: 0 16px 16px 0;
+      padding: 16px 20px;
+      margin: 16px 0 20px;
+      text-align: left;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
+      position: relative;
+      width: 100%;
+    }
+
+    .quote-mark {
+      font-size: 28px;
+      width: 28px;
+      height: 28px;
+      color: #fcd34d;
+      margin-bottom: 4px;
+    }
+
+    .quote-text {
+      font-size: 1rem;
+      font-weight: 600;
+      color: #1e293b;
+      line-height: 1.5;
+      margin: 0 0 8px 0;
+      font-style: italic;
+    }
+
+    .quote-author {
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: #b45309;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
     }
 
     .limit-card {
@@ -659,7 +790,11 @@ export class DiscoverComponent implements OnInit {
   matchedName = '';
 
   limitStatus = {
+    matchingEnabled: false,
+    matchingDisabledMessage: '',
     maxLimit: 5,
+    defaultLimit: 5,
+    hasCustomLimit: false,
     swipesUsed: 0,
     swipesRemaining: 5,
     limitReached: false,
@@ -673,22 +808,30 @@ export class DiscoverComponent implements OnInit {
   constructor(private api: ApiService, private snack: MatSnackBar) {}
 
   ngOnInit() {
-    this.loadSwipeLimit();
-    this.loadUsers();
+    this.loadAll();
   }
 
-  loadSwipeLimit() {
+  loadAll() {
+    this.loading = true;
     this.api.getSwipeLimit().subscribe({
       next: (status: any) => {
         if (status) {
           this.limitStatus = status;
         }
+
+        if (this.limitStatus.matchingEnabled) {
+          this.loadUsers();
+        } else {
+          this.loading = false;
+        }
+      },
+      error: () => {
+        this.loading = false;
       }
     });
   }
 
   loadUsers() {
-    this.loading = true;
     this.api.getDiscoverUsers().subscribe({
       next: (users: any[]) => {
         this.users = users || [];
@@ -732,7 +875,7 @@ export class DiscoverComponent implements OnInit {
   }
 
   swipe(action: 'like' | 'dislike') {
-    if (this.swiping || !this.currentUser || this.limitStatus.limitReached) return;
+    if (this.swiping || !this.currentUser || this.limitStatus.limitReached || !this.limitStatus.matchingEnabled) return;
     this.swiping = true;
     this.cardState = action === 'like' ? 'liked' : 'disliked';
 
@@ -744,8 +887,12 @@ export class DiscoverComponent implements OnInit {
 
       swipeObs.subscribe({
         next: (res: any) => {
-          if (res?.status === 'limit_reached') {
-            this.snack.open(res.error || 'Daily limit reached! (5 profiles per 24 hours)', 'OK', { duration: 4000 });
+          if (res?.status === 'matching_disabled') {
+            this.snack.open(res.message || 'Campus matching has been paused by admin.', 'OK', { duration: 4000 });
+            this.limitStatus.matchingEnabled = false;
+            this.limitStatus.matchingDisabledMessage = res.message;
+          } else if (res?.status === 'limit_reached') {
+            this.snack.open(res.error || 'Daily limit reached!', 'OK', { duration: 4000 });
             this.limitStatus.limitReached = true;
             this.limitStatus.swipesRemaining = 0;
             if (res.resetInMinutes) {
