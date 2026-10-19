@@ -266,23 +266,64 @@ import { AuthService } from './core/services/auth.service';
       min-height: calc(100vh - 68px);
     }
 
-    /* Responsive */
+    /* Responsive for Mobile Phones */
     @media (max-width: 768px) {
       .navbar-container {
-        padding: 0 12px;
+        height: 56px;
+        padding: 0 14px;
       }
 
+      .brand-logo {
+        gap: 8px;
+      }
+
+      .heart-badge {
+        width: 32px;
+        height: 32px;
+        border-radius: 10px;
+      }
+
+      .brand-icon {
+        font-size: 18px;
+        width: 18px;
+        height: 18px;
+        line-height: 18px;
+      }
+
+      .brand-name {
+        font-size: 1.15rem;
+      }
+
+      .brand-sub {
+        font-size: 0.62rem;
+      }
+
+      .avatar-icon {
+        font-size: 28px;
+        width: 28px;
+        height: 28px;
+        line-height: 28px;
+      }
+
+      /* Clean mobile dock navigation bar */
       .nav-menu {
         position: fixed;
-        bottom: 16px;
-        left: 50%;
-        transform: translateX(-50%);
+        bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+        left: 12px;
+        right: 12px;
+        transform: none;
+        max-width: 440px;
+        margin: 0 auto;
+        width: auto;
         z-index: 999;
-        background: rgba(255, 255, 255, 0.95);
+        background: rgba(255, 255, 255, 0.96);
         backdrop-filter: blur(20px);
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
-        padding: 6px 10px;
-        gap: 6px;
+        -webkit-backdrop-filter: blur(20px);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.16), 0 0 0 1px rgba(0, 0, 0, 0.06);
+        padding: 5px 6px;
+        gap: 2px;
+        justify-content: space-around;
+        border-radius: 22px;
       }
 
       .nav-text {
@@ -290,7 +331,24 @@ import { AuthService } from './core/services/auth.service';
       }
 
       .nav-item {
-        padding: 10px 14px;
+        flex: 1;
+        justify-content: center;
+        padding: 8px 4px;
+        border-radius: 14px;
+        min-width: 0;
+      }
+
+      .nav-icon {
+        font-size: 22px;
+        width: 22px;
+        height: 22px;
+        line-height: 22px;
+      }
+
+      /* Ensure page contents are never covered by mobile bottom navigation dock */
+      .page-viewport.authenticated {
+        min-height: calc(100vh - 56px);
+        padding-bottom: calc(78px + env(safe-area-inset-bottom, 0px)) !important;
       }
     }
   `]

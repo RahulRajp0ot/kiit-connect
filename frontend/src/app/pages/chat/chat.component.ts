@@ -156,6 +156,32 @@ import { environment } from '../../../environments/environment';
       width: 48px !important;
       height: 48px !important;
     }
+    @media (max-width: 768px) {
+      .chat-page {
+        height: calc(100dvh - 145px);
+        margin-bottom: 20px;
+      }
+      .chat-header {
+        padding: 8px 12px;
+      }
+      .partner-avatar {
+        width: 38px;
+        height: 38px;
+      }
+      .bubble-content {
+        max-width: 85%;
+        padding: 8px 12px;
+        border-radius: 16px;
+      }
+      .input-bar {
+        padding: 8px 10px;
+        gap: 6px;
+      }
+      .send-btn {
+        width: 40px !important;
+        height: 40px !important;
+      }
+    }
   `]
 })
 export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {

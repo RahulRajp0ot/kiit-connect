@@ -1708,6 +1708,69 @@ import { AuthService } from '../../core/services/auth.service';
         grid-template-columns: repeat(2, 1fr);
       }
     }
+
+    @media (max-width: 600px) {
+      .admin-page {
+        padding: 16px 10px 40px;
+      }
+      .admin-header h1 {
+        font-size: 1.6rem;
+      }
+      .admin-subtitle {
+        font-size: 0.88rem;
+      }
+      .stats-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+      }
+      .stat-card {
+        padding: 14px 12px;
+        gap: 10px;
+      }
+      .stat-icon {
+        width: 38px;
+        height: 38px;
+      }
+      .stat-icon mat-icon {
+        font-size: 20px;
+        width: 20px;
+        height: 20px;
+      }
+      .stat-num {
+        font-size: 1.4rem;
+      }
+      .nav-tabs-bar {
+        gap: 6px;
+      }
+      .tab-btn {
+        padding: 8px 14px !important;
+        font-size: 0.85rem !important;
+      }
+      .table-card {
+        padding: 14px 10px;
+        border-radius: 18px !important;
+      }
+      .table-responsive {
+        width: 100%;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+      }
+      .custom-table {
+        min-width: 720px;
+      }
+      .modal-box {
+        width: 95% !important;
+        max-width: 95% !important;
+        max-height: 90vh !important;
+        border-radius: 20px !important;
+      }
+      .modal-header {
+        padding: 14px 16px;
+      }
+      .modal-body {
+        padding: 14px 16px;
+      }
+    }
   `]
 })
 export class AdminComponent implements OnInit {

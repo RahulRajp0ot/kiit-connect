@@ -511,6 +511,91 @@ import { AuthService } from '../../core/services/auth.service';
       color: #ff4b72;
       transform: scale(1.15);
     }
+
+    /* ── Mobile Responsive Styles ────────────────────────────────── */
+    @media (max-width: 640px) {
+      .feed-page {
+        padding: 16px 10px 30px;
+      }
+
+      .feed-header {
+        margin-bottom: 18px;
+      }
+
+      .page-title {
+        font-size: 1.6rem;
+      }
+
+      .subtitle {
+        font-size: 0.88rem;
+      }
+
+      .create-post-card {
+        padding: 14px 12px;
+        border-radius: 18px !important;
+        margin-bottom: 20px;
+      }
+
+      .creator-avatar {
+        width: 38px;
+        height: 38px;
+      }
+
+      .creator-name {
+        font-size: 0.9rem;
+      }
+
+      .create-actions-row {
+        gap: 8px;
+      }
+
+      .file-name {
+        max-width: 100px;
+      }
+
+      .submit-post-btn {
+        height: 38px !important;
+        padding: 0 16px !important;
+        font-size: 0.85rem !important;
+      }
+
+      .post-card {
+        border-radius: 18px !important;
+      }
+
+      .post-author-row {
+        padding: 12px 14px 8px;
+      }
+
+      .author-avatar {
+        width: 38px;
+        height: 38px;
+      }
+
+      .author-name {
+        font-size: 0.92rem;
+      }
+
+      .post-quote-box {
+        padding: 6px 14px 12px;
+      }
+
+      .post-quote-text {
+        font-size: 0.95rem;
+      }
+
+      .post-photo-wrap {
+        max-height: 360px;
+      }
+
+      .post-img {
+        max-height: 360px;
+      }
+
+      .post-footer {
+        padding: 8px 12px;
+      }
+    }
   `]
 })
 export class FeedComponent implements OnInit {

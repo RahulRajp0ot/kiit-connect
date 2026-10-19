@@ -123,6 +123,32 @@ import { ApiService } from '../../core/services/api.service';
       background: linear-gradient(135deg, #ff6b9d, #c44dff) !important;
       color: white !important;
     }
+    @media (max-width: 600px) {
+      .matches-container {
+        padding: 16px 12px 20px;
+      }
+      .matches-header {
+        margin-bottom: 20px;
+      }
+      .matches-header h1 {
+        font-size: 1.6rem;
+      }
+      .match-card {
+        padding: 12px 14px;
+        gap: 12px;
+        border-radius: 14px;
+      }
+      .match-photo {
+        width: 52px;
+        height: 52px;
+      }
+      .match-info h3 {
+        font-size: 0.95rem;
+      }
+      .match-date {
+        font-size: 0.75rem;
+      }
+    }
   `]
 })
 export class MatchesComponent implements OnInit {

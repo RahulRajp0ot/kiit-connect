@@ -368,12 +368,48 @@ import { COMMA, ENTER } from '@angular/cdk/keycodes';
       background: #f1f5f9 !important;
     }
     @media (max-width: 600px) {
+      .profile-container {
+        padding: 16px 12px 20px;
+      }
+      .profile-header {
+        margin-bottom: 20px;
+      }
+      .profile-header h1 {
+        font-size: 1.6rem;
+      }
+      .likes-counter-banner {
+        padding: 12px 14px;
+        gap: 12px;
+        border-radius: 14px;
+      }
+      .likes-banner-icon {
+        width: 40px;
+        height: 40px;
+      }
+      .likes-banner-icon mat-icon {
+        font-size: 22px;
+        width: 22px;
+        height: 22px;
+        line-height: 22px;
+      }
+      .likes-count {
+        font-size: 1.35rem;
+      }
+      .likes-label {
+        font-size: 0.95rem;
+      }
+      .photos-grid {
+        gap: 6px;
+      }
       .danger-zone-card {
+        padding: 16px;
+        border-radius: 14px;
         flex-direction: column;
         align-items: flex-start;
       }
-      .delete-acc-btn {
+      .delete-acc-btn, .cancel-del-btn {
         width: 100%;
+        justify-content: center;
       }
     }
     .danger-content {

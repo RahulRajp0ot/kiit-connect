@@ -1077,6 +1077,237 @@ import { environment } from '../../../environments/environment';
       color: #64748b !important;
       font-weight: 600 !important;
     }
+
+    /* ── Mobile Responsive Styles ────────────────────────────────── */
+    @media (max-width: 768px) {
+      .speed-chat-container {
+        padding: 0 10px 20px;
+        margin: 12px auto;
+      }
+
+      .lobby-card {
+        padding: 24px 16px;
+        border-radius: 20px;
+      }
+
+      .lobby-badge {
+        padding: 4px 12px;
+        font-size: 0.78rem;
+        margin-bottom: 12px;
+      }
+
+      .lobby-title {
+        font-size: 1.6rem;
+        margin-bottom: 8px;
+      }
+
+      .lobby-desc {
+        font-size: 0.88rem;
+        line-height: 1.5;
+        margin-bottom: 20px;
+      }
+
+      .anon-preview-pill {
+        padding: 10px 14px;
+        gap: 10px;
+        margin-bottom: 20px;
+        width: 100%;
+        justify-content: center;
+      }
+
+      .anon-avatar {
+        font-size: 1.6rem;
+      }
+
+      .anon-name {
+        font-size: 0.98rem;
+      }
+
+      .form-row {
+        flex-direction: column;
+        gap: 0;
+        margin-bottom: 8px;
+      }
+
+      .age-field {
+        width: 100%;
+      }
+
+      .guidelines-box {
+        font-size: 0.8rem;
+        padding: 10px 12px;
+        margin-bottom: 18px;
+      }
+
+      .start-btn {
+        height: 48px !important;
+        font-size: 1rem !important;
+        border-radius: 14px !important;
+      }
+
+      /* Radar Search */
+      .searching-card {
+        padding: 36px 16px;
+        border-radius: 20px;
+      }
+
+      .radar-wrap {
+        width: 110px;
+        height: 110px;
+        margin-bottom: 24px;
+      }
+
+      .radar-core {
+        width: 52px;
+        height: 52px;
+      }
+
+      .radar-core mat-icon {
+        font-size: 26px;
+        width: 26px;
+        height: 26px;
+      }
+
+      .search-title {
+        font-size: 1.3rem;
+      }
+
+      .search-sub {
+        font-size: 0.88rem;
+        margin-bottom: 24px;
+      }
+
+      /* Chat Interface */
+      .chat-interface {
+        height: calc(100dvh - 145px);
+        min-height: 0;
+        border-radius: 20px;
+      }
+
+      .chat-header {
+        padding: 10px 12px;
+      }
+
+      .partner-avatar {
+        width: 38px;
+        height: 38px;
+        font-size: 1.4rem;
+      }
+
+      .partner-name {
+        font-size: 0.98rem;
+      }
+
+      .age-tag {
+        font-size: 0.7rem;
+        padding: 1px 6px;
+      }
+
+      .live-status {
+        font-size: 0.72rem;
+      }
+
+      .chat-actions {
+        gap: 6px;
+      }
+
+      .next-btn {
+        padding: 0 10px !important;
+        height: 36px !important;
+        font-size: 0.82rem !important;
+        border-radius: 10px !important;
+      }
+
+      .leave-btn {
+        padding: 0 10px !important;
+        height: 36px !important;
+        font-size: 0.82rem !important;
+        border-radius: 10px !important;
+      }
+
+      .messages-area {
+        padding: 12px 10px;
+        gap: 8px;
+      }
+
+      .system-bubble {
+        padding: 8px 12px;
+        font-size: 0.78rem;
+        max-width: 95%;
+      }
+
+      .msg-bubble {
+        max-width: 88%;
+      }
+
+      .bubble-content {
+        padding: 8px 12px;
+        border-radius: 16px;
+      }
+
+      .bubble-content p {
+        font-size: 0.9rem;
+      }
+
+      .chat-img-wrap {
+        max-width: 210px;
+      }
+
+      .chat-bubble-img {
+        max-height: 180px;
+      }
+
+      .input-bar {
+        padding: 8px 10px;
+        gap: 6px;
+      }
+
+      .msg-field {
+        margin-bottom: -1.1em;
+      }
+
+      .msg-field input {
+        font-size: 0.9rem;
+      }
+
+      .photo-attach-btn {
+        width: 38px !important;
+        height: 38px !important;
+      }
+
+      .send-btn {
+        width: 40px !important;
+        height: 40px !important;
+      }
+
+      /* State Cards */
+      .state-card {
+        padding: 30px 16px;
+        border-radius: 20px;
+      }
+
+      .empty-title {
+        font-size: 1.3rem;
+      }
+
+      .empty-desc {
+        font-size: 0.88rem;
+        margin-bottom: 18px;
+      }
+
+      .announcement-quote-box {
+        padding: 12px 14px;
+        margin: 12px 0 16px;
+      }
+
+      .quote-text {
+        font-size: 0.92rem;
+      }
+
+      .limit-actions-row {
+        max-width: 100%;
+      }
+    }
   `]
 })
 export class SpeedChatComponent implements OnInit, OnDestroy, AfterViewChecked {

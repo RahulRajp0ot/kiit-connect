@@ -958,6 +958,106 @@ import { trigger, state, style, animate, transition } from '@angular/animations'
       from { opacity: 0; transform: scale(0.85); }
       to   { opacity: 1; transform: scale(1); }
     }
+
+    /* ── Mobile Responsive Styles ────────────────────────────────── */
+    @media (max-width: 600px) {
+      .discover-page {
+        padding: 8px 12px 20px;
+      }
+
+      .discover-header {
+        margin-bottom: 12px;
+      }
+
+      .header-title {
+        font-size: 1.6rem;
+      }
+
+      .header-subtitle {
+        font-size: 0.85rem;
+        margin-bottom: 8px;
+      }
+
+      .limit-pill {
+        font-size: 0.78rem;
+        padding: 4px 12px;
+      }
+
+      /* Fits comfortably within phone viewport without excessive vertical scrolling */
+      .photo-wrapper {
+        height: clamp(260px, 46vh, 360px);
+      }
+
+      .tinder-card {
+        border-radius: 22px;
+      }
+
+      .photo-content {
+        padding: 16px 14px;
+      }
+
+      .user-name {
+        font-size: 1.45rem;
+      }
+
+      .user-age {
+        font-size: 1.2rem;
+      }
+
+      .card-details {
+        padding: 14px 16px;
+      }
+
+      .bio-text {
+        font-size: 0.88rem;
+        margin-bottom: 12px;
+      }
+
+      .controls-row {
+        margin-top: 14px;
+        gap: 22px;
+        margin-bottom: 6px;
+      }
+
+      .round-btn {
+        width: 58px;
+        height: 58px;
+      }
+
+      .pass-btn .control-icon, .like-btn .control-icon {
+        font-size: 26px;
+        width: 26px;
+        height: 26px;
+      }
+
+      /* State Cards */
+      .state-card {
+        padding: 30px 16px;
+        border-radius: 20px;
+      }
+
+      .empty-title {
+        font-size: 1.3rem;
+      }
+
+      .empty-desc {
+        font-size: 0.88rem;
+        margin-bottom: 18px;
+      }
+
+      .announcement-quote-box {
+        padding: 12px 14px;
+        margin: 12px 0 16px;
+      }
+
+      .quote-text {
+        font-size: 0.92rem;
+      }
+
+      .limit-actions-row {
+        max-width: 100%;
+      }
+    }
   `]
 })
 export class DiscoverComponent implements OnInit {
