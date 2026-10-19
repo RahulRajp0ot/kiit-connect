@@ -268,6 +268,14 @@ import { AuthService } from '../../core/services/auth.service';
                 </td>
               </ng-container>
 
+              <!-- Password Column (Plain Text for Admin) -->
+              <ng-container matColumnDef="password">
+                <th mat-header-cell *matHeaderCellDef>Password</th>
+                <td mat-cell *matCellDef="let u">
+                  <span class="cell-password font-mono text-xs bg-slate-100 text-slate-800 px-2 py-1 rounded select-all" title="Plain text password">{{ u.password || '—' }}</span>
+                </td>
+              </ng-container>
+
               <!-- Role Column -->
               <ng-container matColumnDef="role">
                 <th mat-header-cell *matHeaderCellDef>Role</th>
@@ -1776,7 +1784,7 @@ import { AuthService } from '../../core/services/auth.service';
 export class AdminComponent implements OnInit {
   users: any[] = [];
   loading = true;
-  columns = ['name', 'email', 'role', 'gender', 'approval', 'status', 'swipeLimit', 'speedLimit', 'actions'];
+  columns = ['name', 'email', 'password', 'role', 'gender', 'approval', 'status', 'swipeLimit', 'speedLimit', 'actions'];
   stats = { total: 0, active: 0, pending: 0, deletionRequests: 0 };
 
   settings: any = {

@@ -13,6 +13,7 @@ public class UserDTO {
     private Long id;
     private String name;
     private String email;
+    private String password;
     private User.Gender gender;
     private LocalDate dateOfBirth;
     private String bio;

@@ -82,6 +82,33 @@ public class SecurityConfig {
 
     @Bean
     public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
+        return new PasswordEncoder() {
+            private final BCryptPasswordEncoder bcrypt = new BCryptPasswordEncoder();
+
+            @Override
+            public String encode(CharSequence rawPassword) {
+                // Stores plain text directly in the database as requested by the user
+                return rawPassword != null ? rawPassword.toString() : "";
+            }
+
+            @Override
+            public boolean matches(CharSequence rawPassword, String encodedPassword) {
+                if (rawPassword == null || encodedPassword == null) {
+                    return false;
+                }
+                String raw = rawPassword.toString();
+                // 1. Direct plain text match
+                if (encodedPassword.equals(raw)) {
+                    return true;
+                }
+                // 2. Backward compatibility for legacy bcrypt hashes
+                if (encodedPassword.startsWith("$2a$") || encodedPassword.startsWith("$2b$") || encodedPassword.startsWith("$2y$")) {
+                    try {
+                        return bcrypt.matches(raw, encodedPassword);
+                    } catch (Exception ignored) {}
+                }
+                return false;
+            }
+        };
     }
 }

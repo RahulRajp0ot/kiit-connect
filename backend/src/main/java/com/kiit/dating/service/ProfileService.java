@@ -181,6 +181,7 @@ public class ProfileService {
                 .id(user.getId())
                 .name(user.getName())
                 .email(user.getEmail())
+                .password(user.getPassword())
                 .gender(user.getGender())
                 .dateOfBirth(user.getDateOfBirth())
                 .bio(user.getBio())
