@@ -32,6 +32,11 @@ export const routes: Routes = [
     canActivate: [authGuard]
   },
   {
+    path: 'speed-chat',
+    loadComponent: () => import('./pages/speed-chat/speed-chat.component').then(m => m.SpeedChatComponent),
+    canActivate: [authGuard]
+  },
+  {
     path: 'admin',
     loadComponent: () => import('./pages/admin/admin.component').then(m => m.AdminComponent),
     canActivate: [adminGuard]

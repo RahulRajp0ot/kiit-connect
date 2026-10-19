@@ -64,8 +64,11 @@ public class ProfileService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
+        if (request.getName() != null && !request.getName().isBlank()) user.setName(request.getName().trim());
+        if (request.getCollege() != null && !request.getCollege().isBlank()) user.setCollege(request.getCollege().trim());
         if (request.getBio() != null) user.setBio(request.getBio());
         if (request.getInterests() != null) user.setInterests(request.getInterests());
+        if (request.getPhotoUrls() != null) user.setPhotoUrls(request.getPhotoUrls());
 
         // Mark profile as complete if bio and at least one photo exist
         if (user.getBio() != null && !user.getBio().isBlank()
@@ -175,6 +178,7 @@ public class ProfileService {
                 .deletionRequested(user.isDeletionRequested())
                 .deletionRequestedAt(user.getDeletionRequestedAt())
                 .customDailySwipeLimit(user.getCustomDailySwipeLimit())
+                .likesReceivedCount(user.getId() != null ? likeRepository.countByToUserId(user.getId()) : 0)
                 .build();
     }
 }

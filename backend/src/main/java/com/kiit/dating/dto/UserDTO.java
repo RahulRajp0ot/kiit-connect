@@ -26,4 +26,5 @@ public class UserDTO {
     private boolean deletionRequested;
     private java.time.LocalDateTime deletionRequestedAt;
     private Integer customDailySwipeLimit;
+    private long likesReceivedCount;
 }

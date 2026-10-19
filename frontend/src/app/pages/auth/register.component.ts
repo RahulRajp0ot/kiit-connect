@@ -27,9 +27,10 @@ import { AuthService } from '../../core/services/auth.service';
       <div class="auth-container">
         <!-- Brand Header -->
         <div class="auth-header">
-          <div class="heart-icon">💕</div>
-          <h1>KIIT Dating</h1>
-          <p>Find genuine connections on campus</p>
+          <div class="heart-icon">✨</div>
+          <h1>KIIT Connects</h1>
+          <p style="margin: -2px 0 6px; font-weight: 700; color: #c026d3; font-size: 0.95rem;">by KIIT Confession</p>
+          <p style="margin: 0; color: #64748b;">Find genuine connections on campus</p>
         </div>
 
         <mat-card class="auth-card">

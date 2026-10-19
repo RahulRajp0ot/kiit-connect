@@ -8,6 +8,9 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 public class ProfileUpdateRequest {
+    private String name;
     private String bio;
+    private String college;
     private List<String> interests;
+    private List<String> photoUrls;
 }

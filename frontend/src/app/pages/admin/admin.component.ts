@@ -34,6 +34,22 @@ import { ApiService } from '../../core/services/api.service';
           <p class="subtitle">Manage matching, swipe limits, college domains, and students</p>
         </div>
 
+        <!-- Admin Navigation Tabs -->
+        <div class="admin-tabs-nav">
+          <button class="admin-tab-btn" [class.active]="activeTab === 'students'" (click)="activeTab = 'students'">
+            <mat-icon>people</mat-icon>
+            <span>Students & Campus Settings</span>
+          </button>
+          <button class="admin-tab-btn" [class.active]="activeTab === 'speedChat'" (click)="switchToSpeedChat()">
+            <mat-icon>bolt</mat-icon>
+            <span>Speed Connect 24h Audit</span>
+            <span class="audit-counter-badge" *ngIf="speedChatSessions.length > 0">{{ speedChatSessions.length }}</span>
+          </button>
+        </div>
+
+        <!-- TAB 1: STUDENTS & CAMPUS CONTROLS -->
+        <ng-container *ngIf="activeTab === 'students'">
+
         <!-- 5 Stats Cards -->
         <div class="stats-grid">
           <div class="stat-card">
@@ -274,6 +290,10 @@ import { ApiService } from '../../core/services/api.service';
 
                     <!-- Normal Actions (when no deletion requested) -->
                     <ng-container *ngIf="!u.deletionRequested">
+                      <button mat-icon-button title="Edit Student Profile (About & Photos)"
+                              (click)="openEditProfile(u)" class="edit-prof-btn">
+                        <mat-icon>edit_note</mat-icon>
+                      </button>
                       <button mat-icon-button [title]="u.active ? 'Block Student' : 'Unblock Student'"
                               (click)="toggleUser(u)" class="status-btn">
                         <mat-icon [style.color]="u.active ? '#f59e0b' : '#10b981'">
@@ -293,6 +313,200 @@ import { ApiService } from '../../core/services/api.service';
             </table>
           </div>
         </mat-card>
+
+        </ng-container> <!-- End Tab 1 -->
+
+        <!-- ── TAB 2: SPEED CONNECT 24-HOUR AUDIT ────────────────────── -->
+        <div class="speed-chat-audit-section" *ngIf="activeTab === 'speedChat'">
+          <mat-card class="table-card">
+            <div class="table-card-header">
+              <div>
+                <h2 class="table-title">⚡ Speed Connect Logs (Last 24 Hours)</h2>
+                <p class="table-subtitle">Real student identity audit for random anonymous chats. Transcripts are retained for 24h for student safety & harassment monitoring.</p>
+              </div>
+              <button mat-stroked-button (click)="loadSpeedChatSessions()" [disabled]="loadingSpeedChat" class="refresh-btn">
+                <mat-icon>refresh</mat-icon>
+                <span>Refresh Logs</span>
+              </button>
+            </div>
+
+            <div class="loading-wrap" *ngIf="loadingSpeedChat">
+              <mat-spinner diameter="36"></mat-spinner>
+            </div>
+
+            <div class="empty-audit" *ngIf="!loadingSpeedChat && speedChatSessions.length === 0">
+              <mat-icon class="empty-audit-icon">chat_bubble_outline</mat-icon>
+              <h3>No Speed Connect Chats in the last 24 hours</h3>
+              <p>When students connect using random matching, their audit records and transcripts will appear here.</p>
+            </div>
+
+            <div class="table-responsive" *ngIf="!loadingSpeedChat && speedChatSessions.length > 0">
+              <table class="custom-table audit-table">
+                <thead>
+                  <tr>
+                    <th>Time & Status</th>
+                    <th>Student 1 (Real & Anonymous)</th>
+                    <th>Student 2 (Real & Anonymous)</th>
+                    <th>Messages</th>
+                    <th>Transcript</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let s of speedChatSessions">
+                    <td>
+                      <div class="audit-time-cell">
+                        <span class="audit-time">{{ formatTime(s.startedAt) }}</span>
+                        <span class="audit-status-tag" [class.active]="s.status === 'ACTIVE'" [class.ended]="s.status === 'ENDED'">
+                          {{ s.status }}
+                        </span>
+                      </div>
+                    </td>
+                    <td>
+                      <div class="student-audit-cell">
+                        <div class="real-student-name">{{ s.realUser1Name }}</div>
+                        <div class="real-student-email">{{ s.realUser1Email }}</div>
+                        <div class="temp-handle-badge">
+                          🎭 {{ s.user1TempName }} (Age: {{ s.user1Age }})
+                        </div>
+                      </div>
+                    </td>
+                    <td>
+                      <div class="student-audit-cell">
+                        <div class="real-student-name">{{ s.realUser2Name }}</div>
+                        <div class="real-student-email">{{ s.realUser2Email }}</div>
+                        <div class="temp-handle-badge">
+                          🎭 {{ s.user2TempName }} (Age: {{ s.user2Age }})
+                        </div>
+                      </div>
+                    </td>
+                    <td>
+                      <span class="msg-count-pill">{{ s.messageCount }} msgs</span>
+                    </td>
+                    <td>
+                      <button mat-flat-button class="view-transcript-btn" (click)="openTranscriptModal(s)">
+                        <mat-icon>visibility</mat-icon>
+                        <span>View Chat</span>
+                      </button>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </mat-card>
+        </div>
+
+        <!-- ── MODAL 1: EDIT STUDENT PROFILE (About & Photos) ──────────── -->
+        <div class="admin-modal-backdrop" *ngIf="editingUser" (click)="editingUser = null">
+          <div class="admin-modal-card" (click)="$event.stopPropagation()">
+            <div class="modal-header">
+              <div class="modal-title-wrap">
+                <mat-icon class="modal-icon">manage_accounts</mat-icon>
+                <div>
+                  <h3 class="modal-title">Edit Profile · {{ editingUser.name }}</h3>
+                  <span class="modal-subtitle">{{ editingUser.email }} · {{ editingUser.gender }}</span>
+                </div>
+              </div>
+              <button mat-icon-button (click)="editingUser = null">
+                <mat-icon>close</mat-icon>
+              </button>
+            </div>
+
+            <div class="modal-body">
+              <div class="modal-form-row">
+                <mat-form-field appearance="outline" class="modal-field">
+                  <mat-label>Student Name</mat-label>
+                  <input matInput [(ngModel)]="editingUser.name">
+                </mat-form-field>
+
+                <mat-form-field appearance="outline" class="modal-field">
+                  <mat-label>College / Branch</mat-label>
+                  <input matInput [(ngModel)]="editingUser.college">
+                </mat-form-field>
+              </div>
+
+              <!-- About / Bio section -->
+              <mat-form-field appearance="outline" class="full-width modal-textarea">
+                <mat-label>About / Bio Section</mat-label>
+                <textarea matInput [(ngModel)]="editingUser.bio" rows="4" placeholder="Edit student bio or about text..."></textarea>
+                <mat-hint>Visible to students on campus matching cards</mat-hint>
+              </mat-form-field>
+
+              <!-- Profile Photos Management -->
+              <div class="modal-photos-section">
+                <div class="photos-section-header">
+                  <span class="photos-section-title">Profile Photos ({{ editingUser.photoUrls?.length || 0 }}/6)</span>
+                  <button mat-stroked-button class="upload-photo-btn" (click)="adminPhotoInput.click()" [disabled]="uploadingPhoto || (editingUser.photoUrls?.length >= 6)">
+                    <mat-spinner diameter="18" *ngIf="uploadingPhoto"></mat-spinner>
+                    <mat-icon *ngIf="!uploadingPhoto">add_photo_alternate</mat-icon>
+                    <span>Upload New Photo</span>
+                  </button>
+                  <input #adminPhotoInput type="file" accept="image/*" (change)="onAdminUploadPhoto($event)" style="display:none">
+                </div>
+
+                <div class="modal-photos-grid">
+                  <div class="modal-photo-item" *ngFor="let p of editingUser.photoUrls">
+                    <img [src]="p" alt="Student photo">
+                    <button class="remove-photo-badge" (click)="deleteUserPhoto(p)" title="Remove this photo">
+                      <mat-icon>delete</mat-icon>
+                    </button>
+                  </div>
+                  <div class="no-photos-msg" *ngIf="!editingUser.photoUrls || editingUser.photoUrls.length === 0">
+                    No photos uploaded for this student yet. Click "Upload New Photo" above.
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="modal-footer">
+              <button mat-button (click)="editingUser = null">Cancel</button>
+              <button mat-raised-button color="primary" (click)="saveUserProfile()" [disabled]="savingProfile" class="save-profile-btn">
+                <mat-spinner diameter="20" *ngIf="savingProfile"></mat-spinner>
+                <span *ngIf="!savingProfile">Save Profile Changes</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── MODAL 2: CHAT TRANSCRIPT MODAL ────────────────────────── -->
+        <div class="admin-modal-backdrop" *ngIf="transcriptSession" (click)="transcriptSession = null">
+          <div class="admin-modal-card transcript-modal" (click)="$event.stopPropagation()">
+            <div class="modal-header">
+              <div>
+                <h3 class="modal-title">Speed Connect Chat Transcript</h3>
+                <span class="modal-subtitle">
+                  {{ transcriptSession.realUser1Name }} ({{ transcriptSession.realUser1Email }}) ⟷ {{ transcriptSession.realUser2Name }} ({{ transcriptSession.realUser2Email }})
+                </span>
+              </div>
+              <button mat-icon-button (click)="transcriptSession = null">
+                <mat-icon>close</mat-icon>
+              </button>
+            </div>
+
+            <div class="modal-body transcript-body">
+              <div class="loading-wrap" *ngIf="loadingTranscript">
+                <mat-spinner diameter="32"></mat-spinner>
+              </div>
+
+              <div class="empty-transcript" *ngIf="!loadingTranscript && transcriptMessages.length === 0">
+                <p>No messages were exchanged in this session before disconnection.</p>
+              </div>
+
+              <div class="transcript-bubbles-list" *ngIf="!loadingTranscript && transcriptMessages.length > 0">
+                <div class="transcript-msg" *ngFor="let m of transcriptMessages">
+                  <div class="t-msg-header">
+                    <span class="t-sender-handle">🎭 {{ m.senderTempName }}</span>
+                    <span class="t-msg-time">{{ formatTime(m.sentAt) }}</span>
+                  </div>
+                  <div class="t-msg-content">{{ m.content }}</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="modal-footer">
+              <button mat-button (click)="transcriptSession = null">Close</button>
+            </div>
+          </div>
+        </div>
 
       </div>
     </div>
@@ -857,6 +1071,389 @@ import { ApiService } from '../../core/services/api.service';
       line-height: 18px;
     }
 
+    .edit-prof-btn {
+      color: #6366f1 !important;
+    }
+
+    /* ── Admin Tabs ─────────────────────────────────────────────────── */
+    .admin-tabs-nav {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+
+    .admin-tab-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 20px;
+      background: white;
+      border: 1px solid #cbd5e1;
+      border-radius: 9999px;
+      font-size: 0.92rem;
+      font-weight: 700;
+      color: #475569;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .admin-tab-btn.active {
+      background: #0f172a;
+      color: white;
+      border-color: #0f172a;
+      box-shadow: 0 4px 14px rgba(15, 23, 42, 0.2);
+    }
+
+    .audit-counter-badge {
+      background: #ec4899;
+      color: white;
+      font-size: 0.72rem;
+      font-weight: 800;
+      padding: 2px 7px;
+      border-radius: 9999px;
+    }
+
+    /* ── Speed Chat Audit Section ───────────────────────────────────── */
+    .audit-table th, .audit-table td {
+      padding: 14px 16px;
+    }
+
+    .audit-time-cell {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .audit-time {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: #0f172a;
+    }
+
+    .audit-status-tag {
+      display: inline-block;
+      align-self: flex-start;
+      font-size: 0.68rem;
+      font-weight: 800;
+      padding: 2px 6px;
+      border-radius: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+
+    .audit-status-tag.active {
+      background: #ecfdf5;
+      color: #059669;
+      border: 1px solid #a7f3d0;
+    }
+
+    .audit-status-tag.ended {
+      background: #f1f5f9;
+      color: #64748b;
+      border: 1px solid #e2e8f0;
+    }
+
+    .student-audit-cell {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .real-student-name {
+      font-size: 0.92rem;
+      font-weight: 800;
+      color: #0f172a;
+    }
+
+    .real-student-email {
+      font-size: 0.78rem;
+      color: #64748b;
+    }
+
+    .temp-handle-badge {
+      display: inline-block;
+      align-self: flex-start;
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: #7c3aed;
+      background: #f5f3ff;
+      border: 1px solid #ddd6fe;
+      padding: 2px 8px;
+      border-radius: 9999px;
+      margin-top: 2px;
+    }
+
+    .msg-count-pill {
+      font-size: 0.82rem;
+      font-weight: 700;
+      color: #475569;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      padding: 4px 10px;
+      border-radius: 8px;
+    }
+
+    .view-transcript-btn {
+      background: #f1f5f9 !important;
+      color: #0f172a !important;
+      border-radius: 10px !important;
+      font-weight: 700 !important;
+      font-size: 0.82rem !important;
+    }
+
+    .empty-audit {
+      padding: 48px 24px;
+      text-align: center;
+      color: #64748b;
+    }
+
+    .empty-audit-icon {
+      font-size: 48px;
+      width: 48px;
+      height: 48px;
+      color: #cbd5e1;
+      margin-bottom: 12px;
+    }
+
+    /* ── Admin Modals ───────────────────────────────────────────────── */
+    .admin-modal-backdrop {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(15, 23, 42, 0.6);
+      backdrop-filter: blur(4px);
+      z-index: 2000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .admin-modal-card {
+      background: white;
+      border-radius: 24px;
+      width: 100%;
+      max-width: 640px;
+      max-height: 90vh;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);
+      overflow: hidden;
+      animation: modalFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    @keyframes modalFadeIn {
+      from { opacity: 0; transform: scale(0.96); }
+      to { opacity: 1; transform: scale(1); }
+    }
+
+    .modal-header {
+      padding: 20px 24px;
+      border-bottom: 1px solid #e2e8f0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .modal-title-wrap {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .modal-icon {
+      color: #6366f1;
+      font-size: 28px;
+      width: 28px;
+      height: 28px;
+    }
+
+    .modal-title {
+      font-size: 1.25rem;
+      font-weight: 800;
+      color: #0f172a;
+      margin: 0;
+    }
+
+    .modal-subtitle {
+      font-size: 0.82rem;
+      color: #64748b;
+    }
+
+    .modal-body {
+      padding: 24px;
+      overflow-y: auto;
+      flex: 1;
+    }
+
+    .modal-form-row {
+      display: flex;
+      gap: 16px;
+      margin-bottom: 12px;
+    }
+
+    .modal-field {
+      flex: 1;
+      margin-bottom: -1em;
+    }
+
+    .modal-textarea {
+      margin-bottom: 16px;
+    }
+
+    /* Modal Photos Section */
+    .modal-photos-section {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 16px;
+      padding: 16px;
+      margin-top: 12px;
+    }
+
+    .photos-section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 14px;
+    }
+
+    .photos-section-title {
+      font-size: 0.95rem;
+      font-weight: 800;
+      color: #0f172a;
+    }
+
+    .upload-photo-btn {
+      border-radius: 10px !important;
+      font-weight: 700 !important;
+      color: #4338ca !important;
+      border-color: #cbd5e1 !important;
+    }
+
+    .modal-photos-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+    }
+
+    .modal-photo-item {
+      position: relative;
+      aspect-ratio: 1;
+      border-radius: 12px;
+      overflow: hidden;
+      border: 2px solid #e2e8f0;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+    }
+
+    .modal-photo-item img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .remove-photo-badge {
+      position: absolute;
+      top: 6px;
+      right: 6px;
+      background: rgba(220, 38, 38, 0.9);
+      color: white;
+      border: none;
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    }
+
+    .remove-photo-badge mat-icon {
+      font-size: 16px;
+      width: 16px;
+      height: 16px;
+      line-height: 16px;
+    }
+
+    .no-photos-msg {
+      grid-column: 1 / -1;
+      text-align: center;
+      padding: 20px;
+      color: #94a3b8;
+      font-size: 0.88rem;
+    }
+
+    .modal-footer {
+      padding: 16px 24px;
+      border-top: 1px solid #e2e8f0;
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 12px;
+      background: #f8fafc;
+    }
+
+    .save-profile-btn {
+      border-radius: 12px !important;
+      font-weight: 700 !important;
+    }
+
+    /* Transcript Modal */
+    .transcript-modal {
+      max-width: 680px;
+    }
+
+    .transcript-body {
+      background: #f8fafc;
+      min-height: 320px;
+      max-height: 60vh;
+    }
+
+    .transcript-bubbles-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .transcript-msg {
+      background: white;
+      border: 1px solid #e2e8f0;
+      border-radius: 14px;
+      padding: 10px 14px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    }
+
+    .t-msg-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 4px;
+    }
+
+    .t-sender-handle {
+      font-size: 0.8rem;
+      font-weight: 800;
+      color: #7c3aed;
+    }
+
+    .t-msg-time {
+      font-size: 0.72rem;
+      color: #94a3b8;
+    }
+
+    .t-msg-content {
+      font-size: 0.92rem;
+      color: #1e293b;
+      line-height: 1.4;
+      word-break: break-word;
+    }
+
+    .empty-transcript {
+      text-align: center;
+      padding: 48px 16px;
+      color: #94a3b8;
+    }
+
     @media (max-width: 900px) {
       .settings-grid {
         grid-template-columns: 1fr;
@@ -881,6 +1478,20 @@ export class AdminComponent implements OnInit {
   };
 
   newDomain = '';
+
+  activeTab: 'students' | 'speedChat' = 'students';
+  speedChatSessions: any[] = [];
+  loadingSpeedChat = false;
+
+  // Edit Profile Modal
+  editingUser: any = null;
+  savingProfile = false;
+  uploadingPhoto = false;
+
+  // Transcript Modal
+  transcriptSession: any = null;
+  transcriptMessages: any[] = [];
+  loadingTranscript = false;
 
   constructor(private api: ApiService, private snack: MatSnackBar) {}
 
@@ -1055,6 +1666,118 @@ export class AdminComponent implements OnInit {
         this.snack.open(`Deletion request rejected for ${user.name}. Account kept active.`, 'OK', { duration: 3000 });
       },
       error: () => this.snack.open('Failed to reject deletion request', 'Dismiss', { duration: 3000 })
+    });
+  }
+
+  switchToSpeedChat() {
+    this.activeTab = 'speedChat';
+    this.loadSpeedChatSessions();
+  }
+
+  loadSpeedChatSessions() {
+    this.loadingSpeedChat = true;
+    this.api.adminGetSpeedChatSessions().subscribe({
+      next: (sessions: any[]) => {
+        this.speedChatSessions = sessions || [];
+        this.loadingSpeedChat = false;
+      },
+      error: () => {
+        this.loadingSpeedChat = false;
+      }
+    });
+  }
+
+  openEditProfile(user: any) {
+    this.editingUser = {
+      ...user,
+      photoUrls: user.photoUrls ? [...user.photoUrls] : (user.photos ? [...user.photos] : [])
+    };
+  }
+
+  saveUserProfile() {
+    if (!this.editingUser) return;
+    this.savingProfile = true;
+    this.api.adminUpdateUserProfile(this.editingUser.id, {
+      name: this.editingUser.name,
+      college: this.editingUser.college,
+      bio: this.editingUser.bio,
+      photoUrls: this.editingUser.photoUrls
+    }).subscribe({
+      next: (updated: any) => {
+        this.savingProfile = false;
+        const idx = this.users.findIndex(u => u.id === updated.id);
+        if (idx !== -1) {
+          this.users[idx] = updated;
+          this.users = [...this.users];
+        }
+        this.editingUser = null;
+        this.snack.open(`Profile for ${updated.name} updated successfully! ✅`, 'OK', { duration: 3000 });
+      },
+      error: () => {
+        this.savingProfile = false;
+        this.snack.open('Failed to update student profile', 'Dismiss', { duration: 3000 });
+      }
+    });
+  }
+
+  onAdminUploadPhoto(event: Event) {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file || !this.editingUser) return;
+
+    this.uploadingPhoto = true;
+    this.api.adminUploadUserPhoto(this.editingUser.id, file).subscribe({
+      next: (res: any) => {
+        const url = res?.photoUrl || res?.url || res;
+        if (url) {
+          if (!this.editingUser.photoUrls) this.editingUser.photoUrls = [];
+          this.editingUser.photoUrls.push(url);
+        }
+        this.uploadingPhoto = false;
+        input.value = '';
+        this.snack.open('Photo uploaded for student! 📸', '', { duration: 2500 });
+      },
+      error: () => {
+        this.uploadingPhoto = false;
+        input.value = '';
+        this.snack.open('Failed to upload photo for student', 'Dismiss', { duration: 2500 });
+      }
+    });
+  }
+
+  deleteUserPhoto(photoUrl: string) {
+    if (!this.editingUser) return;
+    this.api.adminDeleteUserPhoto(this.editingUser.id, photoUrl).subscribe({
+      next: () => {
+        this.editingUser.photoUrls = this.editingUser.photoUrls.filter((p: string) => p !== photoUrl);
+        this.snack.open('Photo removed', '', { duration: 2000 });
+      },
+      error: () => {
+        this.snack.open('Failed to remove photo', 'Dismiss', { duration: 2000 });
+      }
+    });
+  }
+
+  openTranscriptModal(session: any) {
+    this.transcriptSession = session;
+    this.transcriptMessages = [];
+    this.loadingTranscript = true;
+    this.api.adminGetSpeedChatMessages(session.sessionUuid).subscribe({
+      next: (msgs: any[]) => {
+        this.transcriptMessages = msgs || [];
+        this.loadingTranscript = false;
+      },
+      error: () => {
+        this.loadingTranscript = false;
+        this.snack.open('Failed to load chat transcript', 'Dismiss', { duration: 2500 });
+      }
+    });
+  }
+
+  formatTime(isoStr: string): string {
+    if (!isoStr) return '';
+    return new Date(isoStr).toLocaleString('en-IN', {
+      month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
     });
   }
 

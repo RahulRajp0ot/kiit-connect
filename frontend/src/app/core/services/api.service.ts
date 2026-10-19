@@ -126,4 +126,45 @@ export class ApiService {
   adminRemoveDomain(domain: string): Observable<any> {
     return this.http.delete(`${this.base}/admin/settings/domains/${encodeURIComponent(domain)}`);
   }
+
+  // Admin User Profile Management
+  adminGetUser(id: number): Observable<any> {
+    return this.http.get<any>(`${this.base}/admin/users/${id}`);
+  }
+  adminUpdateUserProfile(id: number, data: any): Observable<any> {
+    return this.http.put<any>(`${this.base}/admin/users/${id}/profile`, data);
+  }
+  adminUploadUserPhoto(id: number, file: File): Observable<{ photoUrl: string }> {
+    const formData = new FormData();
+    formData.append('file', file);
+    return this.http.post<{ photoUrl: string }>(`${this.base}/admin/users/${id}/photos`, formData);
+  }
+  adminDeleteUserPhoto(id: number, photoUrl: string): Observable<void> {
+    return this.http.delete<void>(`${this.base}/admin/users/${id}/photos`, { params: { url: photoUrl } });
+  }
+
+  // ── Speed Chat (Random Anonymous Matching) ─────────────
+  speedChatFindMatch(tempName: string, age: number): Observable<any> {
+    return this.http.post<any>(`${this.base}/speed-chat/find`, { tempName, age });
+  }
+  speedChatCancel(): Observable<void> {
+    return this.http.post<void>(`${this.base}/speed-chat/cancel`, {});
+  }
+  speedChatSendMessage(sessionUuid: string, content: string): Observable<any> {
+    return this.http.post<any>(`${this.base}/speed-chat/${sessionUuid}/message`, { content });
+  }
+  speedChatLeave(sessionUuid: string): Observable<void> {
+    return this.http.post<void>(`${this.base}/speed-chat/${sessionUuid}/leave`, {});
+  }
+  speedChatGetMessages(sessionUuid: string): Observable<any[]> {
+    return this.http.get<any[]>(`${this.base}/speed-chat/${sessionUuid}/messages`);
+  }
+
+  // Admin Speed Chat Audit
+  adminGetSpeedChatSessions(): Observable<any[]> {
+    return this.http.get<any[]>(`${this.base}/admin/speed-chat/sessions`);
+  }
+  adminGetSpeedChatMessages(sessionUuid: string): Observable<any[]> {
+    return this.http.get<any[]>(`${this.base}/admin/speed-chat/sessions/${sessionUuid}/messages`);
+  }
 }

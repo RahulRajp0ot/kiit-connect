@@ -47,16 +47,17 @@ public class EmailService {
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
 
-            helper.setFrom(mailUsername, "KIIT Dating");
+            helper.setFrom(mailUsername, "KIIT Connects");
             helper.setTo(toEmail);
-            helper.setSubject("Your KIIT Dating Verification Code: " + otp);
+            helper.setSubject("Your KIIT Connects Verification Code: " + otp);
 
             String html = """
                 <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 520px; margin: 0 auto; padding: 32px 24px; background: #ffffff; border-radius: 20px; border: 1px solid #f1f5f9; box-shadow: 0 10px 30px rgba(0,0,0,0.05);">
                     <div style="text-align: center; margin-bottom: 24px;">
                         <h1 style="margin: 0; font-size: 26px; font-weight: 800; color: #ff4b72;">
-                            KIIT Dating 💕
+                            KIIT Connects ✨
                         </h1>
+                        <p style="margin: 4px 0 0; color: #8b5cf6; font-size: 13px; font-weight: 700;">by KIIT Confession</p>
                         <p style="margin: 6px 0 0; color: #64748b; font-size: 14px;">Campus Email Verification</p>
                     </div>
                     

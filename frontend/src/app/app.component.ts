@@ -22,7 +22,10 @@ import { AuthService } from './core/services/auth.service';
           <div class="heart-badge">
             <mat-icon class="brand-icon">favorite</mat-icon>
           </div>
-          <span class="brand-name">KIIT<span class="brand-accent">Dating</span></span>
+          <div class="brand-text-col">
+            <span class="brand-name">KIIT<span class="brand-accent">Connects</span></span>
+            <span class="brand-sub">by KIIT Confession</span>
+          </div>
         </a>
 
         <!-- Center Nav Links -->
@@ -30,6 +33,10 @@ import { AuthService } from './core/services/auth.service';
           <a routerLink="/discover" routerLinkActive="active" class="nav-item">
             <mat-icon class="nav-icon">explore</mat-icon>
             <span class="nav-text">Discover</span>
+          </a>
+          <a routerLink="/speed-chat" routerLinkActive="active" class="nav-item speed-chat-nav">
+            <mat-icon class="nav-icon">bolt</mat-icon>
+            <span class="nav-text">Speed Connect</span>
           </a>
           <a routerLink="/matches" routerLinkActive="active" class="nav-item">
             <mat-icon class="nav-icon">favorite_border</mat-icon>
@@ -123,8 +130,14 @@ import { AuthService } from './core/services/auth.service';
       line-height: 22px;
     }
 
+    .brand-text-col {
+      display: flex;
+      flex-direction: column;
+      line-height: 1.1;
+    }
+
     .brand-name {
-      font-size: 1.35rem;
+      font-size: 1.3rem;
       font-weight: 800;
       letter-spacing: -0.5px;
       color: #0f172a;
@@ -135,6 +148,18 @@ import { AuthService } from './core/services/auth.service';
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
       margin-left: 2px;
+    }
+
+    .brand-sub {
+      font-size: 0.68rem;
+      font-weight: 700;
+      color: #9333ea;
+      letter-spacing: 0.3px;
+    }
+
+    .speed-chat-nav.active {
+      background: linear-gradient(135deg, #ec4899, #8b5cf6) !important;
+      color: white !important;
     }
 
     /* Nav Links */

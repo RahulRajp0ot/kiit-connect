@@ -28,6 +28,25 @@ import { COMMA, ENTER } from '@angular/cdk/keycodes';
         <p class="subtitle">Make your profile stand out 💫</p>
       </div>
 
+      <!-- Likes Received Banner -->
+      <div class="likes-counter-banner">
+        <div class="likes-banner-icon">
+          <mat-icon>favorite</mat-icon>
+        </div>
+        <div class="likes-banner-text">
+          <div class="likes-banner-title">
+            <span class="likes-count">{{ likesReceivedCount }}</span>
+            <span class="likes-label">{{ likesReceivedCount === 1 ? 'Student Liked You' : 'Students Liked You' }}</span>
+          </div>
+          <p class="likes-banner-sub" *ngIf="likesReceivedCount > 0">
+            You're popular on campus! Keep your bio & pictures fresh to spark more conversations. 🔥
+          </p>
+          <p class="likes-banner-sub" *ngIf="likesReceivedCount === 0">
+            No likes yet! Add a catchy bio and authentic photos to start getting noticed on campus. ✨
+          </p>
+        </div>
+      </div>
+
       <div class="profile-grid">
         <!-- Profile Photos Card -->
         <mat-card class="photos-card">
@@ -168,6 +187,61 @@ import { COMMA, ENTER } from '@angular/cdk/keycodes';
       margin: 0;
     }
     .subtitle { color: #666; margin: 8px 0 0; }
+
+    .likes-counter-banner {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      background: linear-gradient(135deg, #fff1f2, #fdf4ff);
+      border: 1px solid #fbcfe8;
+      border-radius: 18px;
+      padding: 16px 20px;
+      margin-bottom: 24px;
+      box-shadow: 0 4px 15px rgba(244, 63, 94, 0.08);
+    }
+    .likes-banner-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #ff4b72, #e11d48);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      flex-shrink: 0;
+      box-shadow: 0 4px 12px rgba(225, 29, 72, 0.3);
+    }
+    .likes-banner-icon mat-icon {
+      font-size: 26px;
+      width: 26px;
+      height: 26px;
+      line-height: 26px;
+    }
+    .likes-banner-text {
+      flex: 1;
+    }
+    .likes-banner-title {
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+    }
+    .likes-count {
+      font-size: 1.6rem;
+      font-weight: 800;
+      color: #e11d48;
+    }
+    .likes-label {
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: #0f172a;
+    }
+    .likes-banner-sub {
+      margin: 4px 0 0;
+      font-size: 0.88rem;
+      color: #64748b;
+      line-height: 1.4;
+    }
+
     .profile-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -355,6 +429,7 @@ export class ProfileComponent implements OnInit {
   uploading = false;
   deleting = false;
   deletionRequested = false;
+  likesReceivedCount = 0;
 
   constructor(
     private fb: FormBuilder,
@@ -374,6 +449,7 @@ export class ProfileComponent implements OnInit {
         this.interests = user.interests || [];
         this.photos = user.photoUrls || user.photos || [];
         this.deletionRequested = !!user.deletionRequested;
+        this.likesReceivedCount = user.likesReceivedCount || 0;
       }
     });
   }

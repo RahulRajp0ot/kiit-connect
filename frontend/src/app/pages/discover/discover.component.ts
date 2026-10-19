@@ -79,7 +79,7 @@ import { trigger, state, style, animate, transition } from '@angular/animations'
           <div class="announcement-quote-box review-box">
             <mat-icon class="quote-mark">format_quote</mat-icon>
             <p class="quote-text">Your campus profile is currently pending administrator verification. Swiping and matching will be unlocked as soon as an admin approves your account.</p>
-            <span class="quote-author">— KIIT Dating Verification Team</span>
+            <span class="quote-author">— KIIT Connects Verification Team</span>
           </div>
 
           <p class="empty-desc">
@@ -114,7 +114,7 @@ import { trigger, state, style, animate, transition } from '@angular/animations'
           <div class="announcement-quote-box">
             <mat-icon class="quote-mark">format_quote</mat-icon>
             <p class="quote-text">{{ limitStatus.matchingDisabledMessage || 'Campus matching will go live soon once more students register!' }}</p>
-            <span class="quote-author">— KIIT Dating Administration</span>
+            <span class="quote-author">— KIIT Connects Administration</span>
           </div>
 
           <p class="empty-desc">

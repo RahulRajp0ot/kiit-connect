@@ -17,6 +17,8 @@ public interface LikeRepository extends JpaRepository<Like, Long> {
 
     Optional<Like> findByFromUserAndToUser(User fromUser, User toUser);
 
+    long countByToUserId(Long toUserId);
+
     @Modifying
     @Query("DELETE FROM Like l WHERE l.fromUser.id = :userId OR l.toUser.id = :userId")
     void deleteAllByUserId(@Param("userId") Long userId);
