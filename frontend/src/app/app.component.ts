@@ -28,8 +28,8 @@ import { AuthService } from './core/services/auth.service';
           </div>
         </a>
 
-        <!-- Center Nav Links -->
-        <nav class="nav-menu">
+        <!-- Center Nav Links (Desktop only) -->
+        <nav class="nav-menu desktop-nav">
           <a routerLink="/discover" routerLinkActive="active" class="nav-item">
             <mat-icon class="nav-icon">explore</mat-icon>
             <span class="nav-text">Discover</span>
@@ -82,6 +82,34 @@ import { AuthService } from './core/services/auth.service';
     <main class="page-viewport" [class.authenticated]="auth.isLoggedIn()">
       <router-outlet></router-outlet>
     </main>
+
+    <!-- Mobile Dedicated Bottom Navigation Dock -->
+    <nav class="mobile-bottom-nav" *ngIf="auth.isLoggedIn()">
+      <a routerLink="/discover" routerLinkActive="active" class="mobile-nav-link">
+        <mat-icon class="m-icon">explore</mat-icon>
+        <span class="m-label">Discover</span>
+      </a>
+      <a routerLink="/feed" routerLinkActive="active" class="mobile-nav-link">
+        <mat-icon class="m-icon">dynamic_feed</mat-icon>
+        <span class="m-label">Feed</span>
+      </a>
+      <a routerLink="/speed-chat" routerLinkActive="active" class="mobile-nav-link speed-link">
+        <mat-icon class="m-icon">bolt</mat-icon>
+        <span class="m-label">Speed</span>
+      </a>
+      <a routerLink="/matches" routerLinkActive="active" class="mobile-nav-link">
+        <mat-icon class="m-icon">favorite</mat-icon>
+        <span class="m-label">Matches</span>
+      </a>
+      <a routerLink="/profile" routerLinkActive="active" class="mobile-nav-link">
+        <mat-icon class="m-icon">person</mat-icon>
+        <span class="m-label">Profile</span>
+      </a>
+      <a routerLink="/admin" routerLinkActive="active" class="mobile-nav-link admin-link" *ngIf="auth.isAdmin()">
+        <mat-icon class="m-icon">shield</mat-icon>
+        <span class="m-label">Admin</span>
+      </a>
+    </nav>
   `,
   styles: [`
     .navbar-wrapper {
@@ -266,36 +294,47 @@ import { AuthService } from './core/services/auth.service';
       min-height: calc(100vh - 68px);
     }
 
+    .mobile-bottom-nav {
+      display: none;
+    }
+
     /* Responsive for Mobile Phones */
     @media (max-width: 768px) {
+      .desktop-nav {
+        display: none !important;
+      }
+
       .navbar-container {
-        height: 56px;
-        padding: 0 14px;
+        height: 60px;
+        padding: 0 16px;
       }
 
       .brand-logo {
-        gap: 8px;
+        gap: 10px;
       }
 
       .heart-badge {
-        width: 32px;
-        height: 32px;
+        width: 36px;
+        height: 36px;
         border-radius: 10px;
       }
 
       .brand-icon {
-        font-size: 18px;
-        width: 18px;
-        height: 18px;
-        line-height: 18px;
+        font-size: 20px;
+        width: 20px;
+        height: 20px;
+        line-height: 20px;
       }
 
       .brand-name {
-        font-size: 1.15rem;
+        font-size: 1.2rem;
+        font-weight: 800;
       }
 
       .brand-sub {
-        font-size: 0.62rem;
+        font-size: 0.68rem;
+        font-weight: 700;
+        color: #9333ea;
       }
 
       .avatar-icon {
@@ -305,50 +344,72 @@ import { AuthService } from './core/services/auth.service';
         line-height: 28px;
       }
 
-      /* Clean mobile dock navigation bar */
-      .nav-menu {
+      /* Mobile Bottom Navigation Bar (Docked at the very bottom of the screen) */
+      .mobile-bottom-nav {
+        display: flex;
         position: fixed;
-        bottom: calc(10px + env(safe-area-inset-bottom, 0px));
-        left: 12px;
-        right: 12px;
-        transform: none;
-        max-width: 440px;
-        margin: 0 auto;
-        width: auto;
-        z-index: 999;
-        background: rgba(255, 255, 255, 0.96);
+        bottom: 0;
+        left: 0;
+        right: 0;
+        z-index: 9999;
+        background: rgba(255, 255, 255, 0.98);
         backdrop-filter: blur(20px);
         -webkit-backdrop-filter: blur(20px);
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.16), 0 0 0 1px rgba(0, 0, 0, 0.06);
-        padding: 5px 6px;
-        gap: 2px;
+        border-top: 1px solid #e2e8f0;
+        box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.08);
+        padding: 6px 4px calc(6px + env(safe-area-inset-bottom, 0px));
         justify-content: space-around;
-        border-radius: 22px;
+        align-items: center;
       }
 
-      .nav-text {
-        display: none;
-      }
-
-      .nav-item {
-        flex: 1;
+      .mobile-nav-link {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
         justify-content: center;
-        padding: 8px 4px;
-        border-radius: 14px;
+        text-decoration: none;
+        color: #64748b;
+        flex: 1;
         min-width: 0;
+        padding: 4px 2px;
+        border-radius: 12px;
+        transition: all 0.2s ease;
+        gap: 2px;
       }
 
-      .nav-icon {
+      .mobile-nav-link .m-icon {
         font-size: 22px;
         width: 22px;
         height: 22px;
         line-height: 22px;
       }
 
-      /* Ensure page contents are never covered by mobile bottom navigation dock */
+      .mobile-nav-link .m-label {
+        font-size: 0.68rem;
+        font-weight: 700;
+        letter-spacing: 0.2px;
+      }
+
+      .mobile-nav-link.active {
+        color: #ff4b72;
+      }
+
+      .mobile-nav-link.active .m-icon {
+        transform: scale(1.12);
+      }
+
+      .mobile-nav-link.speed-link.active {
+        color: #ec4899;
+      }
+
+      .mobile-nav-link.admin-link.active {
+        color: #4f46e5;
+      }
+
+      /* Ensure page content never gets covered by bottom nav */
       .page-viewport.authenticated {
-        min-height: calc(100vh - 56px);
-        padding-bottom: calc(78px + env(safe-area-inset-bottom, 0px)) !important;
+        min-height: calc(100vh - 60px);
+        padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px)) !important;
       }
     }
   `]

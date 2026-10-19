@@ -160,7 +160,7 @@ import { environment } from '../../../environments/environment';
             <mat-form-field appearance="outline" class="age-field">
               <mat-label>Age (18+)</mat-label>
               <input matInput type="number" [(ngModel)]="age" min="18" max="99">
-              <mat-hint>Must be 18</mat-hint>
+              <mat-hint>Must be 18 or older</mat-hint>
             </mat-form-field>
           </div>
 
@@ -413,12 +413,10 @@ import { environment } from '../../../environments/environment';
 
     .flex-field {
       flex: 1;
-      margin-bottom: -1em;
     }
 
     .age-field {
-      width: 120px;
-      margin-bottom: -1em;
+      width: 140px;
     }
 
     .guidelines-box {
@@ -1125,12 +1123,13 @@ import { environment } from '../../../environments/environment';
 
       .form-row {
         flex-direction: column;
-        gap: 0;
-        margin-bottom: 8px;
+        gap: 14px;
+        margin-bottom: 12px;
       }
 
-      .age-field {
+      .flex-field, .age-field {
         width: 100%;
+        margin-bottom: 0;
       }
 
       .guidelines-box {
