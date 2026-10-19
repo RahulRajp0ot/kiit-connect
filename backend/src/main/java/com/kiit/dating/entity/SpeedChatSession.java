@@ -16,7 +16,8 @@ public class SpeedChatSession {
 
     public enum Status {
         ACTIVE,
-        ENDED
+        ENDED,
+        TERMINATED_BY_ADMIN
     }
 
     @Id

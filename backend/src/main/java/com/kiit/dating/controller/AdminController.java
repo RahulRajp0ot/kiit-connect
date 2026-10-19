@@ -125,6 +125,18 @@ public class AdminController {
         return ResponseEntity.ok(profileService.toDTO(updated));
     }
 
+    @PutMapping("/users/{id}/speed-chat-limit")
+    public ResponseEntity<UserDTO> setUserSpeedChatLimit(@PathVariable Long id, @RequestBody Map<String, Object> body) {
+        Integer limit = null;
+        if (body.get("limit") != null) {
+            try {
+                limit = Integer.parseInt(body.get("limit").toString());
+            } catch (Exception ignored) {}
+        }
+        User updated = adminSettingsService.setUserCustomSpeedChatLimit(id, limit);
+        return ResponseEntity.ok(profileService.toDTO(updated));
+    }
+
     // ── System Settings ──────────────────────────────────
     @GetMapping("/settings")
     public ResponseEntity<AppSettings> getSettings() {
@@ -144,6 +156,12 @@ public class AdminController {
         return ResponseEntity.ok(adminSettingsService.updateDefaultSwipeLimit(limit));
     }
 
+    @PutMapping("/settings/speed-chat-limit")
+    public ResponseEntity<AppSettings> updateDefaultSpeedChatLimit(@RequestBody Map<String, Object> body) {
+        int limit = Integer.parseInt(body.get("limit").toString());
+        return ResponseEntity.ok(adminSettingsService.updateDefaultSpeedChatLimit(limit));
+    }
+
     @PostMapping("/settings/domains")
     public ResponseEntity<AppSettings> addDomain(@RequestBody Map<String, String> body) {
         String domain = body.get("domain");
@@ -155,7 +173,7 @@ public class AdminController {
         return ResponseEntity.ok(adminSettingsService.removeAllowedDomain(domain));
     }
 
-    // ── Speed Chat 24h Audit Endpoints ───────────────────
+    // ── Speed Chat 24h Audit & Control Endpoints ──────────
     @GetMapping("/speed-chat/sessions")
     public ResponseEntity<List<SpeedChatAdminSessionDTO>> getSpeedChatSessions() {
         return ResponseEntity.ok(speedChatService.getSessionsLast24Hours());
@@ -164,5 +182,11 @@ public class AdminController {
     @GetMapping("/speed-chat/sessions/{sessionUuid}/messages")
     public ResponseEntity<List<SpeedChatMessageDTO>> getSpeedChatSessionMessages(@PathVariable String sessionUuid) {
         return ResponseEntity.ok(speedChatService.getSessionMessages(sessionUuid));
+    }
+
+    @PostMapping("/speed-chat/sessions/{sessionUuid}/break")
+    public ResponseEntity<Void> breakSpeedChatSession(@PathVariable String sessionUuid) {
+        speedChatService.terminateSessionByAdmin(sessionUuid);
+        return ResponseEntity.ok().build();
     }
 }

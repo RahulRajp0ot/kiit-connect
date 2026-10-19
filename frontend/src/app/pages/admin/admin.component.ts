@@ -136,6 +136,27 @@ import { ApiService } from '../../core/services/api.service';
               </div>
             </mat-card>
 
+            <!-- Global Speed Connect Limit (Default 100) -->
+            <mat-card class="control-card compact">
+              <div class="card-top">
+                <div class="card-icon-wrap speed-bolt">
+                  <mat-icon>flash_on</mat-icon>
+                </div>
+                <div>
+                  <h3 class="card-heading">Default Speed Connect Limit</h3>
+                  <p class="card-subheading">Daily random speed chats allowed per student (Default: 100)</p>
+                </div>
+              </div>
+
+              <div class="limit-input-row">
+                <mat-form-field appearance="outline" class="limit-field">
+                  <input matInput type="number" min="1" max="1000" [(ngModel)]="settings.defaultDailySpeedChatLimit">
+                  <span matSuffix class="suffix-text">chats/day</span>
+                </mat-form-field>
+                <button mat-raised-button color="primary" (click)="saveDefaultSpeedLimit()">Save</button>
+              </div>
+            </mat-card>
+
             <!-- 3. Allowed College Domains -->
             <mat-card class="control-card compact">
               <div class="card-top">
@@ -272,6 +293,24 @@ import { ApiService } from '../../core/services/api.service';
                 </td>
               </ng-container>
 
+              <!-- Daily Speed Connect Limit Column (Customizable per user!) -->
+              <ng-container matColumnDef="speedLimit">
+                <th mat-header-cell *matHeaderCellDef>Speed Connect (Today)</th>
+                <td mat-cell *matCellDef="let u">
+                  <div class="limit-cell">
+                    <div class="limit-text-block">
+                      <span class="speed-used-badge">{{ u.speedChatsUsedToday || 0 }} used</span>
+                      <span class="limit-badge" [class.custom]="u.customDailySpeedChatLimit">
+                        {{ u.customDailySpeedChatLimit ? u.customDailySpeedChatLimit + ' (Custom)' : (settings.defaultDailySpeedChatLimit || 100) + ' (Default)' }}
+                      </span>
+                    </div>
+                    <button mat-icon-button class="edit-limit-btn" (click)="promptUserSpeedLimit(u)" title="Set specific Speed Connect limit for this student">
+                      <mat-icon>tune</mat-icon>
+                    </button>
+                  </div>
+                </td>
+              </ng-container>
+
               <!-- Actions Column -->
               <ng-container matColumnDef="actions">
                 <th mat-header-cell *matHeaderCellDef>Actions</th>
@@ -348,7 +387,7 @@ import { ApiService } from '../../core/services/api.service';
                     <th>Student 1 (Real & Anonymous)</th>
                     <th>Student 2 (Real & Anonymous)</th>
                     <th>Messages</th>
-                    <th>Transcript</th>
+                    <th>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -356,8 +395,11 @@ import { ApiService } from '../../core/services/api.service';
                     <td>
                       <div class="audit-time-cell">
                         <span class="audit-time">{{ formatTime(s.startedAt) }}</span>
-                        <span class="audit-status-tag" [class.active]="s.status === 'ACTIVE'" [class.ended]="s.status === 'ENDED'">
-                          {{ s.status }}
+                        <span class="audit-status-tag"
+                              [class.active]="s.status === 'ACTIVE'"
+                              [class.ended]="s.status === 'ENDED'"
+                              [class.terminated]="s.status === 'TERMINATED_BY_ADMIN'">
+                          {{ s.status === 'TERMINATED_BY_ADMIN' ? 'BROKEN BY ADMIN' : s.status }}
                         </span>
                       </div>
                     </td>
@@ -383,10 +425,16 @@ import { ApiService } from '../../core/services/api.service';
                       <span class="msg-count-pill">{{ s.messageCount }} msgs</span>
                     </td>
                     <td>
-                      <button mat-flat-button class="view-transcript-btn" (click)="openTranscriptModal(s)">
-                        <mat-icon>visibility</mat-icon>
-                        <span>View Chat</span>
-                      </button>
+                      <div class="audit-actions-row">
+                        <button mat-flat-button class="view-transcript-btn" (click)="openTranscriptModal(s)">
+                          <mat-icon>visibility</mat-icon>
+                          <span>Chat</span>
+                        </button>
+                        <button mat-flat-button class="break-chat-btn" *ngIf="s.status === 'ACTIVE'" (click)="breakChatSession(s)" title="Break ongoing conversation">
+                          <mat-icon>link_off</mat-icon>
+                          <span>Break</span>
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 </tbody>
@@ -1016,6 +1064,28 @@ import { ApiService } from '../../core/services/api.service';
       line-height: 16px;
     }
 
+    .limit-text-block {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+
+    .speed-used-badge {
+      font-size: 0.74rem;
+      font-weight: 700;
+      color: #1e1b4b;
+      background: #e0e7ff;
+      border: 1px solid #c7d2fe;
+      padding: 1px 6px;
+      border-radius: 6px;
+      align-self: flex-start;
+    }
+
+    .card-icon-wrap.speed-bolt {
+      background: #fdf2f8;
+      color: #ec4899;
+    }
+
     .actions-cell {
       display: flex;
       align-items: center;
@@ -1154,6 +1224,12 @@ import { ApiService } from '../../core/services/api.service';
       border: 1px solid #e2e8f0;
     }
 
+    .audit-status-tag.terminated {
+      background: #fef2f2;
+      color: #b91c1c;
+      border: 1px solid #fecaca;
+    }
+
     .student-audit-cell {
       display: flex;
       flex-direction: column;
@@ -1194,12 +1270,31 @@ import { ApiService } from '../../core/services/api.service';
       border-radius: 8px;
     }
 
+    .audit-actions-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
     .view-transcript-btn {
       background: #f1f5f9 !important;
       color: #0f172a !important;
       border-radius: 10px !important;
       font-weight: 700 !important;
       font-size: 0.82rem !important;
+    }
+
+    .break-chat-btn {
+      background: #fef2f2 !important;
+      color: #dc2626 !important;
+      border: 1px solid #fecaca !important;
+      border-radius: 10px !important;
+      font-weight: 700 !important;
+      font-size: 0.82rem !important;
+    }
+
+    .break-chat-btn:hover {
+      background: #fee2e2 !important;
     }
 
     .empty-audit {
@@ -1467,13 +1562,14 @@ import { ApiService } from '../../core/services/api.service';
 export class AdminComponent implements OnInit {
   users: any[] = [];
   loading = true;
-  columns = ['name', 'email', 'gender', 'approval', 'status', 'swipeLimit', 'actions'];
+  columns = ['name', 'email', 'gender', 'approval', 'status', 'swipeLimit', 'speedLimit', 'actions'];
   stats = { total: 0, active: 0, pending: 0, deletionRequests: 0 };
 
   settings: any = {
     matchingEnabled: false,
     matchingDisabledMessage: '',
     defaultDailySwipeLimit: 5,
+    defaultDailySpeedChatLimit: 100,
     allowedDomains: []
   };
 
@@ -1546,6 +1642,17 @@ export class AdminComponent implements OnInit {
     });
   }
 
+  saveDefaultSpeedLimit() {
+    const limit = this.settings.defaultDailySpeedChatLimit || 100;
+    this.api.adminUpdateDefaultSpeedLimit(limit).subscribe({
+      next: (res: any) => {
+        this.settings = res;
+        this.snack.open(`Default Speed Connect limit updated to ${this.settings.defaultDailySpeedChatLimit || 100} chats/day! ⚡`, 'OK', { duration: 3000 });
+      },
+      error: () => this.snack.open('Failed to update speed limit', 'Dismiss', { duration: 3000 })
+    });
+  }
+
   addDomain() {
     if (!this.newDomain?.trim()) return;
     this.api.adminAddDomain(this.newDomain.trim()).subscribe({
@@ -1588,6 +1695,29 @@ export class AdminComponent implements OnInit {
           : `${user.name}'s limit reset to default (${this.settings.defaultDailySwipeLimit})!`;
         this.snack.open(note, 'OK', { duration: 3000 });
       }
+    });
+  }
+
+  promptUserSpeedLimit(user: any) {
+    const current = user.customDailySpeedChatLimit || this.settings.defaultDailySpeedChatLimit || 100;
+    const input = prompt(
+      `Set daily Speed Connect limit for ${user.name}:\n(Enter a number e.g. 50, or leave empty/0 to reset to system default of ${this.settings.defaultDailySpeedChatLimit || 100})`,
+      user.customDailySpeedChatLimit ? user.customDailySpeedChatLimit.toString() : ''
+    );
+
+    if (input === null) return; // User cancelled
+
+    const num = input.trim() ? parseInt(input.trim(), 10) : null;
+    this.api.adminSetUserSpeedLimit(user.id, num).subscribe({
+      next: (updated: any) => {
+        user.customDailySpeedChatLimit = updated.customDailySpeedChatLimit;
+        user.speedChatLimit = updated.speedChatLimit;
+        const note = updated.customDailySpeedChatLimit
+          ? `${user.name}'s Speed Connect limit set to ${updated.customDailySpeedChatLimit} chats/day!`
+          : `${user.name}'s Speed Connect limit reset to default (${this.settings.defaultDailySpeedChatLimit || 100})!`;
+        this.snack.open(note, 'OK', { duration: 3000 });
+      },
+      error: () => this.snack.open('Failed to update student speed limit', 'Dismiss', { duration: 3000 })
     });
   }
 
@@ -1683,6 +1813,21 @@ export class AdminComponent implements OnInit {
       },
       error: () => {
         this.loadingSpeedChat = false;
+      }
+    });
+  }
+
+  breakChatSession(session: any) {
+    if (!confirm(`Are you sure you want to break and disconnect this ongoing chat between ${session.realUser1Name} and ${session.realUser2Name}?`)) {
+      return;
+    }
+    this.api.adminBreakSpeedChatSession(session.sessionUuid).subscribe({
+      next: () => {
+        session.status = 'TERMINATED_BY_ADMIN';
+        this.snack.open('Chat session successfully terminated by Admin.', 'OK', { duration: 3000 });
+      },
+      error: () => {
+        this.snack.open('Failed to break chat session.', 'Dismiss', { duration: 3000 });
       }
     });
   }

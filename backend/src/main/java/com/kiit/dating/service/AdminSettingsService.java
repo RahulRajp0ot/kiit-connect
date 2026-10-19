@@ -22,7 +22,7 @@ public class AdminSettingsService {
 
     @Transactional
     public AppSettings getSettings() {
-        return settingsRepository.findById(SETTINGS_ID).orElseGet(() -> {
+        AppSettings settings = settingsRepository.findById(SETTINGS_ID).orElseGet(() -> {
             Set<String> defaultDomains = new HashSet<>();
             defaultDomains.add("kiit.ac.in");
 
@@ -31,10 +31,16 @@ public class AdminSettingsService {
                     .matchingEnabled(false) // Initially disabled as requested
                     .matchingDisabledMessage("Campus matching is currently paused while initial students register! Stay tuned, we will go live soon! 🚀 — Admin")
                     .defaultDailySwipeLimit(5)
+                    .defaultDailySpeedChatLimit(100)
                     .allowedDomains(defaultDomains)
                     .build();
             return settingsRepository.save(defaultSettings);
         });
+        if (settings.getDefaultDailySpeedChatLimit() <= 0) {
+            settings.setDefaultDailySpeedChatLimit(100);
+            settings = settingsRepository.save(settings);
+        }
+        return settings;
     }
 
     @Transactional
@@ -54,6 +60,16 @@ public class AdminSettingsService {
         }
         AppSettings settings = getSettings();
         settings.setDefaultDailySwipeLimit(limit);
+        return settingsRepository.save(settings);
+    }
+
+    @Transactional
+    public AppSettings updateDefaultSpeedChatLimit(int limit) {
+        if (limit < 1) {
+            throw new IllegalArgumentException("Daily speed chat limit must be at least 1");
+        }
+        AppSettings settings = getSettings();
+        settings.setDefaultDailySpeedChatLimit(limit);
         return settingsRepository.save(settings);
     }
 
@@ -85,6 +101,19 @@ public class AdminSettingsService {
             user.setCustomDailySwipeLimit(null);
         } else {
             user.setCustomDailySwipeLimit(customLimit);
+        }
+        return userRepository.save(user);
+    }
+
+    @Transactional
+    public User setUserCustomSpeedChatLimit(Long userId, Integer customLimit) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found: " + userId));
+        // If customLimit is null or <= 0, reset to default (null)
+        if (customLimit == null || customLimit <= 0) {
+            user.setCustomDailySpeedChatLimit(null);
+        } else {
+            user.setCustomDailySpeedChatLimit(customLimit);
         }
         return userRepository.save(user);
     }

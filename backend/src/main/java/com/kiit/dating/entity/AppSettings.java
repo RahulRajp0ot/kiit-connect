@@ -27,6 +27,10 @@ public class AppSettings {
     @Column(nullable = false)
     private int defaultDailySwipeLimit;
 
+    @Column(nullable = false)
+    @Builder.Default
+    private int defaultDailySpeedChatLimit = 100;
+
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "allowed_email_domains", joinColumns = @JoinColumn(name = "settings_id"))
     @Column(name = "domain")

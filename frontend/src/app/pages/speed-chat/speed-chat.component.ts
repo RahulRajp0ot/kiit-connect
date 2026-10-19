@@ -54,14 +54,22 @@ import { environment } from '../../../environments/environment';
             <mat-form-field appearance="outline" class="age-field">
               <mat-label>Age (18+)</mat-label>
               <input matInput type="number" [(ngModel)]="age" min="18" max="99">
-              <mat-hint>Must be 18 or older</mat-hint>
+              <mat-hint>Must be 18</mat-hint>
             </mat-form-field>
           </div>
 
           <div class="guidelines-box">
             <mat-icon>shield</mat-icon>
-            <div>
-              <strong>Campus Safety Note:</strong> While completely anonymous between students, all chat transcripts are retained in the Admin Panel for 24 hours to prevent harassment or abuse.
+            <div> 
+            <strong>Campus Safety Note:</strong> 
+            Please keep all conversations respectful and appropriate. Harassment or abusive behavior is not permitted. </div>
+          </div>
+
+          <div class="limit-warning-banner" *ngIf="limitExceeded">
+            <mat-icon>warning_amber</mat-icon>
+            <div class="limit-warning-text">
+              <strong>Limit Exceeded</strong>
+              <p>{{ limitExceededMessage || 'Ur daily speed connect limit exceed' }}</p>
             </div>
           </div>
 
@@ -124,8 +132,18 @@ import { environment } from '../../../environments/environment';
           </div>
         </div>
 
-        <!-- Disconnect Banner -->
-        <div class="partner-left-banner" *ngIf="partnerDisconnected">
+        <!-- Disconnect / Admin Terminated Banner -->
+        <div class="partner-left-banner admin-terminated-banner" *ngIf="partnerDisconnected && adminTerminated">
+          <div class="banner-text-wrap">
+            <mat-icon>gavel</mat-icon>
+            <span><strong>Chat Ended by Admin:</strong> An administrator has broken this ongoing conversation.</span>
+          </div>
+          <button mat-flat-button class="find-new-btn admin-new-btn" (click)="resetToLobby()">
+            Back to Lobby
+          </button>
+        </div>
+
+        <div class="partner-left-banner" *ngIf="partnerDisconnected && !adminTerminated">
           <mat-icon>person_off</mat-icon>
           <span>Partner has disconnected or left the chat.</span>
           <button mat-flat-button class="find-new-btn" (click)="skipToNext()">
@@ -304,6 +322,39 @@ import { environment } from '../../../environments/environment';
       height: 20px;
       flex-shrink: 0;
       margin-top: 2px;
+    }
+
+    .limit-warning-banner {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      border-radius: 14px;
+      padding: 12px 16px;
+      color: #b91c1c;
+      text-align: left;
+      margin-bottom: 20px;
+    }
+
+    .limit-warning-banner mat-icon {
+      color: #ef4444;
+      font-size: 26px;
+      width: 26px;
+      height: 26px;
+      flex-shrink: 0;
+    }
+
+    .limit-warning-text strong {
+      display: block;
+      font-size: 0.92rem;
+      margin-bottom: 2px;
+    }
+
+    .limit-warning-text p {
+      margin: 0;
+      font-size: 0.85rem;
+      color: #7f1d1d;
     }
 
     .start-btn {
@@ -524,6 +575,27 @@ import { environment } from '../../../environments/environment';
       font-size: 0.82rem !important;
     }
 
+    .admin-terminated-banner {
+      background: #450a0a !important;
+      border-bottom: 1px solid #7f1d1d !important;
+      color: #fecaca !important;
+    }
+
+    .admin-terminated-banner .banner-text-wrap {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .admin-terminated-banner mat-icon {
+      color: #f87171;
+    }
+
+    .admin-new-btn {
+      background: #ef4444 !important;
+      color: white !important;
+    }
+
     /* Messages Area */
     .messages-area {
       flex: 1;
@@ -650,6 +722,9 @@ export class SpeedChatComponent implements OnInit, OnDestroy, AfterViewChecked {
   partnerTempName = '';
   partnerAge = 18;
   partnerDisconnected = false;
+  adminTerminated = false;
+  limitExceeded = false;
+  limitExceededMessage = '';
 
   myUserId = 0;
   messages: any[] = [];
@@ -722,19 +797,28 @@ export class SpeedChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     this.state = 'SEARCHING';
     this.messages = [];
     this.partnerDisconnected = false;
+    this.adminTerminated = false;
 
     this.api.speedChatFindMatch(this.tempName.trim(), this.age).subscribe({
       next: (res) => {
-        if (res.status === 'MATCHED') {
+        if (res.status === 'LIMIT_EXCEEDED') {
+          this.state = 'IDLE';
+          this.limitExceeded = true;
+          this.limitExceededMessage = res.message || 'Ur daily speed connect limit exceed';
+          this.snack.open(this.limitExceededMessage, 'Close', { duration: 6000 });
+        } else if (res.status === 'MATCHED') {
+          this.limitExceeded = false;
           this.onMatchFound(res);
         } else {
+          this.limitExceeded = false;
           // Waiting state -> wait for WebSocket notification
           this.state = 'SEARCHING';
         }
       },
-      error: () => {
+      error: (err) => {
         this.state = 'IDLE';
-        this.snack.open('Failed to enter matching queue. Please try again.', 'Dismiss', { duration: 3000 });
+        const msg = err.error?.message || 'Failed to enter matching queue. Please try again.';
+        this.snack.open(msg, 'Dismiss', { duration: 3000 });
       }
     });
   }
@@ -752,6 +836,7 @@ export class SpeedChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     this.partnerTempName = match.partnerTempName;
     this.partnerAge = match.partnerAge;
     this.partnerDisconnected = false;
+    this.adminTerminated = false;
     this.state = 'CHATTING';
     this.messages = [];
     this.shouldScroll = true;
@@ -765,6 +850,10 @@ export class SpeedChatComponent implements OnInit, OnDestroy, AfterViewChecked {
       if (payload.event === 'PARTNER_LEFT') {
         this.partnerDisconnected = true;
         this.snack.open('Partner has left the conversation', 'OK', { duration: 3000 });
+      } else if (payload.event === 'TERMINATED_BY_ADMIN') {
+        this.partnerDisconnected = true;
+        this.adminTerminated = true;
+        this.snack.open('⚠️ This chat was terminated by the administrator.', 'OK', { duration: 6000 });
       } else if (payload.content) {
         // Message received
         this.messages.push(payload);
@@ -814,6 +903,14 @@ export class SpeedChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     this.state = 'IDLE';
     this.messages = [];
     this.partnerDisconnected = false;
+    this.adminTerminated = false;
+  }
+
+  resetToLobby() {
+    this.leaveChat(false);
+    this.adminTerminated = false;
+    this.partnerDisconnected = false;
+    this.state = 'IDLE';
   }
 
   scrollToBottom() {

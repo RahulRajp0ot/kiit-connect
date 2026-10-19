@@ -32,6 +32,7 @@ public class SpeedChatService {
     private final SpeedChatMessageRepository messageRepository;
     private final UserRepository userRepository;
     private final SimpMessagingTemplate messagingTemplate;
+    private final AdminSettingsService adminSettingsService;
 
     @Data
     @AllArgsConstructor
@@ -49,6 +50,21 @@ public class SpeedChatService {
     public synchronized SpeedChatMatchResponse findMatch(User currentUser, String rawTempName, int rawAge) {
         String tempName = (rawTempName == null || rawTempName.trim().isBlank()) ? "KIITian" : rawTempName.trim();
         int age = rawAge < 18 ? 18 : rawAge;
+
+        // Check user's daily speed connect limit
+        int limit = currentUser.getCustomDailySpeedChatLimit() != null && currentUser.getCustomDailySpeedChatLimit() > 0
+                ? currentUser.getCustomDailySpeedChatLimit()
+                : adminSettingsService.getSettings().getDefaultDailySpeedChatLimit();
+        if (limit <= 0) limit = 100;
+
+        long used = sessionRepository.countSessionsForUserSince(currentUser.getId(), LocalDateTime.now().minusHours(24));
+        if (used >= limit) {
+            log.warn("User {} exceeded daily speed connect limit ({}/{})", currentUser.getEmail(), used, limit);
+            return SpeedChatMatchResponse.builder()
+                    .status("LIMIT_EXCEEDED")
+                    .message("Ur daily speed connect limit exceed")
+                    .build();
+        }
 
         // Clean up any ongoing active sessions for this user
         closeActiveSessionsForUser(currentUser);
@@ -196,6 +212,29 @@ public class SpeedChatService {
             activeUserSessions.remove(session.getUser2().getId());
         });
         cancelWaiting(user.getId());
+    }
+
+    @Transactional
+    public synchronized void terminateSessionByAdmin(String sessionUuid) {
+        sessionRepository.findBySessionUuid(sessionUuid).ifPresent(session -> {
+            if (session.getStatus() == SpeedChatSession.Status.ACTIVE) {
+                session.setStatus(SpeedChatSession.Status.TERMINATED_BY_ADMIN);
+                session.setEndedAt(LocalDateTime.now());
+                sessionRepository.save(session);
+
+                Map<String, Object> event = Map.of(
+                        "event", "TERMINATED_BY_ADMIN",
+                        "sessionUuid", sessionUuid,
+                        "message", "This chat was terminated by the administrator."
+                );
+                messagingTemplate.convertAndSend("/topic/speed-chat/session/" + sessionUuid, event);
+                log.warn("SpeedChat session {} was TERMINATED BY ADMIN", sessionUuid);
+            }
+            activeUserSessions.remove(session.getUser1().getId());
+            activeUserSessions.remove(session.getUser2().getId());
+            cancelWaiting(session.getUser1().getId());
+            cancelWaiting(session.getUser2().getId());
+        });
     }
 
     private void closeActiveSessionsForUser(User user) {

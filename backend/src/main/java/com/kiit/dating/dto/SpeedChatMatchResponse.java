@@ -14,4 +14,5 @@ public class SpeedChatMatchResponse {
     private String partnerTempName;
     private int partnerAge;
     private Long partnerUserId;
+    private String message;
 }

@@ -73,6 +73,9 @@ public class User implements UserDetails {
     // Specific limit set by admin; if null, user follows global default
     private Integer customDailySwipeLimit;
 
+    // Specific speed connect limit set by admin; if null, user follows global default
+    private Integer customDailySpeedChatLimit;
+
     @Column(updatable = false)
     private LocalDateTime createdAt;
 

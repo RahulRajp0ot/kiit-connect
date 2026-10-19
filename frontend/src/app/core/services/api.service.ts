@@ -160,11 +160,20 @@ export class ApiService {
     return this.http.get<any[]>(`${this.base}/speed-chat/${sessionUuid}/messages`);
   }
 
-  // Admin Speed Chat Audit
+  // Admin Speed Chat Audit & Controls
   adminGetSpeedChatSessions(): Observable<any[]> {
     return this.http.get<any[]>(`${this.base}/admin/speed-chat/sessions`);
   }
   adminGetSpeedChatMessages(sessionUuid: string): Observable<any[]> {
     return this.http.get<any[]>(`${this.base}/admin/speed-chat/sessions/${sessionUuid}/messages`);
+  }
+  adminBreakSpeedChatSession(sessionUuid: string): Observable<void> {
+    return this.http.post<void>(`${this.base}/admin/speed-chat/sessions/${sessionUuid}/break`, {});
+  }
+  adminSetUserSpeedLimit(userId: number, limit: number | null): Observable<any> {
+    return this.http.put(`${this.base}/admin/users/${userId}/speed-chat-limit`, { limit });
+  }
+  adminUpdateDefaultSpeedLimit(limit: number): Observable<any> {
+    return this.http.put(`${this.base}/admin/settings/speed-chat-limit`, { limit });
   }
 }

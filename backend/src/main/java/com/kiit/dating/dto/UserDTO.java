@@ -27,4 +27,7 @@ public class UserDTO {
     private java.time.LocalDateTime deletionRequestedAt;
     private Integer customDailySwipeLimit;
     private long likesReceivedCount;
+    private Integer customDailySpeedChatLimit;
+    private long speedChatsUsedToday;
+    private int speedChatLimit;
 }

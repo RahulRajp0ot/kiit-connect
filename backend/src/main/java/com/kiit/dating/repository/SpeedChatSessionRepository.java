@@ -22,6 +22,9 @@ public interface SpeedChatSessionRepository extends JpaRepository<SpeedChatSessi
     @Query("SELECT s FROM SpeedChatSession s WHERE (s.user1 = :user OR s.user2 = :user) AND s.status = :status")
     List<SpeedChatSession> findActiveSessionsForUser(@Param("user") User user, @Param("status") SpeedChatSession.Status status);
 
+    @Query("SELECT COUNT(s) FROM SpeedChatSession s WHERE (s.user1.id = :userId OR s.user2.id = :userId) AND s.startedAt >= :since")
+    long countSessionsForUserSince(@Param("userId") Long userId, @Param("since") LocalDateTime since);
+
     @Modifying
     @Query("DELETE FROM SpeedChatSession s WHERE s.startedAt < :threshold")
     void deleteOlderThan(@Param("threshold") LocalDateTime threshold);

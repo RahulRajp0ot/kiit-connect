@@ -5,9 +5,11 @@ import com.cloudinary.utils.ObjectUtils;
 import com.kiit.dating.dto.ProfileUpdateRequest;
 import com.kiit.dating.dto.UserDTO;
 import com.kiit.dating.entity.User;
+import com.kiit.dating.repository.AppSettingsRepository;
 import com.kiit.dating.repository.LikeRepository;
 import com.kiit.dating.repository.MatchRepository;
 import com.kiit.dating.repository.MessageRepository;
+import com.kiit.dating.repository.SpeedChatSessionRepository;
 import com.kiit.dating.repository.UserRepository;
 import com.kiit.dating.repository.UserSwipeRepository;
 import lombok.RequiredArgsConstructor;
@@ -37,6 +39,8 @@ public class ProfileService {
     private final MessageRepository messageRepository;
     private final LikeRepository likeRepository;
     private final UserSwipeRepository userSwipeRepository;
+    private final SpeedChatSessionRepository speedChatSessionRepository;
+    private final AppSettingsRepository appSettingsRepository;
 
     @Value("${cloudinary.cloud-name:}")
     private String cloudName;
@@ -161,6 +165,18 @@ public class ProfileService {
     }
 
     public UserDTO toDTO(User user) {
+        long speedChatsUsed = 0;
+        if (user.getId() != null) {
+            speedChatsUsed = speedChatSessionRepository.countSessionsForUserSince(user.getId(), LocalDateTime.now().minusHours(24));
+        }
+        int defaultSpeedLimit = 100;
+        var settingsOpt = appSettingsRepository.findById(1L);
+        if (settingsOpt.isPresent() && settingsOpt.get().getDefaultDailySpeedChatLimit() > 0) {
+            defaultSpeedLimit = settingsOpt.get().getDefaultDailySpeedChatLimit();
+        }
+        int effectiveSpeedLimit = user.getCustomDailySpeedChatLimit() != null && user.getCustomDailySpeedChatLimit() > 0
+                ? user.getCustomDailySpeedChatLimit() : defaultSpeedLimit;
+
         return UserDTO.builder()
                 .id(user.getId())
                 .name(user.getName())
@@ -179,6 +195,9 @@ public class ProfileService {
                 .deletionRequestedAt(user.getDeletionRequestedAt())
                 .customDailySwipeLimit(user.getCustomDailySwipeLimit())
                 .likesReceivedCount(user.getId() != null ? likeRepository.countByToUserId(user.getId()) : 0)
+                .customDailySpeedChatLimit(user.getCustomDailySpeedChatLimit())
+                .speedChatsUsedToday(speedChatsUsed)
+                .speedChatLimit(effectiveSpeedLimit)
                 .build();
     }
 }
