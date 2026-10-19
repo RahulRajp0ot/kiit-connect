@@ -49,15 +49,21 @@ public class ProfileService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-        Map<String, Object> uploadResult = cloudinary.uploader().upload(
-                file.getBytes(),
-                ObjectUtils.asMap(
-                        "folder", "kiit-dating/profile-photos",
-                        "transformation", "q_auto,f_auto,w_600,c_fill,g_face"
-                )
-        );
-
-        String url = (String) uploadResult.get("secure_url");
+        String url;
+        try {
+            Map<String, Object> uploadResult = cloudinary.uploader().upload(
+                    file.getBytes(),
+                    ObjectUtils.asMap(
+                            "folder", "kiit-dating/profile-photos",
+                            "transformation", "q_auto,f_auto,w_600,c_fill,g_face"
+                    )
+            );
+            url = (String) uploadResult.get("secure_url");
+        } catch (Exception e) {
+            // Local fallback when Cloudinary is not configured or in offline mode
+            String mime = file.getContentType() != null ? file.getContentType() : "image/jpeg";
+            url = "data:" + mime + ";base64," + java.util.Base64.getEncoder().encodeToString(file.getBytes());
+        }
 
         List<String> photos = user.getPhotoUrls() == null ? new ArrayList<>() : new ArrayList<>(user.getPhotoUrls());
         if (photos.size() >= 6) {

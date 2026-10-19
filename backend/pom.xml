@@ -60,6 +60,13 @@
             <scope>runtime</scope>
         </dependency>
 
+        <!-- H2 Database (for instant local testing without PostgreSQL) -->
+        <dependency>
+            <groupId>com.h2database</groupId>
+            <artifactId>h2</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+
         <!-- JWT -->
         <dependency>
             <groupId>io.jsonwebtoken</groupId>
