@@ -1,0 +1,62 @@
+version: '3.8'
+
+services:
+  # ── PostgreSQL Database ─────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    container_name: kiit-postgres
+    restart: always
+    environment:
+      POSTGRES_DB: kiit_dating
+      POSTGRES_USER: kiit_admin
+      POSTGRES_PASSWORD: kiit_password_2026
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U kiit_admin -d kiit_dating"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # ── Spring Boot Backend ─────────────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: kiit-backend
+    restart: always
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/kiit_dating?sslmode=disable
+      SPRING_DATASOURCE_USERNAME: kiit_admin
+      SPRING_DATASOURCE_PASSWORD: kiit_password_2026
+      JWT_SECRET: KIITDatingSecretKey2026SuperSecureAndLongKeyForProduction
+      CORS_ALLOWED_ORIGINS: http://localhost,http://localhost:4200,http://localhost:80
+      PORT: 8088
+      # Optional: Cloudinary & Gmail
+      CLOUDINARY_CLOUD_NAME: ${CLOUDINARY_CLOUD_NAME:-your_cloud_name}
+      CLOUDINARY_API_KEY: ${CLOUDINARY_API_KEY:-your_api_key}
+      CLOUDINARY_API_SECRET: ${CLOUDINARY_API_SECRET:-your_api_secret}
+      SPRING_MAIL_USERNAME: ${SPRING_MAIL_USERNAME:-}
+      SPRING_MAIL_PASSWORD: ${SPRING_MAIL_PASSWORD:-}
+    ports:
+      - "8088:8088"
+
+  # ── Angular Frontend (Nginx) ────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: kiit-frontend
+    restart: always
+    depends_on:
+      - backend
+    ports:
+      - "80:80"
+
+volumes:
+  postgres_data:
