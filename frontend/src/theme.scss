@@ -1,0 +1,45 @@
+@use '@angular/material' as mat;
+
+@include mat.core();
+
+$primary-palette: (
+  50:  #ffe8f0,
+  100: #ffc5d9,
+  200: #ff9fbe,
+  300: #ff79a2,
+  400: #ff5c8d,
+  500: #ff6b9d,
+  600: #e85e8e,
+  700: #cc507c,
+  800: #b0426a,
+  900: #8a2a4c,
+  A100: #ffe3ec,
+  A200: #ffb0c8,
+  A400: #ff6b9d,
+  A700: #c44dff,
+  contrast: (
+    50: rgba(0,0,0,0.87),
+    100: rgba(0,0,0,0.87),
+    200: rgba(0,0,0,0.87),
+    300: white,
+    400: white,
+    500: white,
+    600: white,
+    700: white,
+    800: white,
+    900: white,
+  )
+);
+
+$app-theme: mat.define-light-theme((
+  color: (
+    primary: mat.define-palette($primary-palette, 500, 300, 700),
+    accent:  mat.define-palette(mat.$purple-palette, A200, A100, A400),
+    warn:    mat.define-palette(mat.$red-palette),
+  ),
+  typography: mat.define-typography-config(
+    $font-family: "'Inter', sans-serif"
+  ),
+));
+
+@include mat.all-component-themes($app-theme);

@@ -1,0 +1,24 @@
+package com.kiit.dating.repository;
+
+import com.kiit.dating.entity.Match;
+import com.kiit.dating.entity.User;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+import org.springframework.stereotype.Repository;
+
+import java.util.List;
+import java.util.Optional;
+
+@Repository
+public interface MatchRepository extends JpaRepository<Match, Long> {
+
+    @Query("SELECT m FROM Match m WHERE m.userA.id = :userId OR m.userB.id = :userId ORDER BY m.matchedAt DESC")
+    List<Match> findAllByUserId(@Param("userId") Long userId);
+
+    @Query("SELECT m FROM Match m WHERE (m.userA = :u1 AND m.userB = :u2) OR (m.userA = :u2 AND m.userB = :u1)")
+    Optional<Match> findByUsers(@Param("u1") User u1, @Param("u2") User u2);
+
+    boolean existsByUserAAndUserB(User userA, User userB);
+    boolean existsByUserAAndUserBOrUserBAndUserA(User userA, User userB, User userA2, User userB2);
+}
