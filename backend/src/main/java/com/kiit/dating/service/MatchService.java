@@ -8,6 +8,8 @@ import com.kiit.dating.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import org.springframework.transaction.annotation.Transactional;
+
 import java.util.List;
 
 @Service
@@ -17,6 +19,7 @@ public class MatchService {
     private final MatchRepository matchRepository;
     private final UserRepository userRepository;
 
+    @Transactional(readOnly = true)
     public List<MatchDTO> getMatches(Long userId) {
         return matchRepository.findAllByUserId(userId).stream()
                 .map(match -> toMatchDTO(match, userId))
@@ -26,8 +29,13 @@ public class MatchService {
     private MatchDTO toMatchDTO(Match match, Long currentUserId) {
         User other = match.getUserA().getId().equals(currentUserId)
                 ? match.getUserB() : match.getUserA();
-        String photo = (other.getPhotoUrls() != null && !other.getPhotoUrls().isEmpty())
-                ? other.getPhotoUrls().get(0) : null;
+        String photo = null;
+        try {
+            if (other.getPhotoUrls() != null && !other.getPhotoUrls().isEmpty()) {
+                photo = other.getPhotoUrls().get(0);
+            }
+        } catch (Exception ignored) {}
+
         return MatchDTO.builder()
                 .matchId(match.getId())
                 .matchedUserId(other.getId())

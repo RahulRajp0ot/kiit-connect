@@ -14,7 +14,7 @@ import java.util.Optional;
 @Repository
 public interface MatchRepository extends JpaRepository<Match, Long> {
 
-    @Query("SELECT m FROM Match m WHERE m.userA.id = :userId OR m.userB.id = :userId ORDER BY m.matchedAt DESC")
+    @Query("SELECT m FROM Match m JOIN FETCH m.userA JOIN FETCH m.userB WHERE m.userA.id = :userId OR m.userB.id = :userId ORDER BY m.matchedAt DESC")
     List<Match> findAllByUserId(@Param("userId") Long userId);
 
     @Query("SELECT m FROM Match m WHERE (m.userA = :u1 AND m.userB = :u2) OR (m.userA = :u2 AND m.userB = :u1)")

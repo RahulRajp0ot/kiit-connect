@@ -89,6 +89,9 @@ export class ApiService {
   getChatHistory(matchId: number): Observable<any[]> {
     return this.http.get<any[]>(`${this.base}/chat/${matchId}`);
   }
+  sendChatMessage(matchId: number, content: string): Observable<any> {
+    return this.http.post<any>(`${this.base}/chat/${matchId}/message`, { content });
+  }
 
   appealReview(): Observable<any> {
     return this.http.post<any>(`${this.base}/profile/me/appeal`, {});

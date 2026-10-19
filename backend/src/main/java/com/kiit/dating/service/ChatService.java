@@ -23,16 +23,20 @@ public class ChatService {
     private final UserRepository userRepository;
     private final SimpMessagingTemplate messagingTemplate;
 
+    @Transactional(readOnly = true)
     public List<MessageDTO> getChatHistory(Long matchId) {
-        Match match = matchRepository.findById(matchId).orElseThrow();
+        Match match = matchRepository.findById(matchId)
+                .orElseThrow(() -> new IllegalArgumentException("Match not found: " + matchId));
         return messageRepository.findByMatchOrderBySentAtAsc(match)
                 .stream().map(this::toDTO).toList();
     }
 
     @Transactional
     public MessageDTO sendMessage(Long matchId, Long senderId, String content) {
-        Match match = matchRepository.findById(matchId).orElseThrow();
-        User sender = userRepository.findById(senderId).orElseThrow();
+        Match match = matchRepository.findById(matchId)
+                .orElseThrow(() -> new IllegalArgumentException("Match not found: " + matchId));
+        User sender = userRepository.findById(senderId)
+                .orElseThrow(() -> new IllegalArgumentException("Sender user not found: " + senderId));
 
         // Determine receiver (the other person in the match)
         User receiver = match.getUserA().getId().equals(senderId)
@@ -50,7 +54,9 @@ public class ChatService {
         MessageDTO dto = toDTO(msg);
 
         // Broadcast to WebSocket topic so both users receive it in real time
-        messagingTemplate.convertAndSend("/topic/match/" + matchId, dto);
+        try {
+            messagingTemplate.convertAndSend("/topic/match/" + matchId, dto);
+        } catch (Exception ignored) {}
 
         return dto;
     }
