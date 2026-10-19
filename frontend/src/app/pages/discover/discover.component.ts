@@ -1,5 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { RouterLink } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -13,7 +14,7 @@ import { trigger, state, style, animate, transition } from '@angular/animations'
   selector: 'app-discover',
   standalone: true,
   imports: [
-    CommonModule, MatCardModule, MatButtonModule, MatIconModule,
+    CommonModule, RouterLink, MatCardModule, MatButtonModule, MatIconModule,
     MatProgressSpinnerModule, MatSnackBarModule, MatChipsModule
   ],
   animations: [
@@ -32,6 +33,17 @@ import { trigger, state, style, animate, transition } from '@angular/animations'
         <div class="discover-header">
           <h1 class="header-title">Discover</h1>
           <p class="header-subtitle">Find your match on KIIT campus 💕</p>
+
+          <!-- 24-Hour Swipe Limit Indicator Badge -->
+          <div class="limit-pill" [class.warning]="limitStatus.swipesRemaining <= 2" [class.exhausted]="limitStatus.limitReached">
+            <mat-icon class="limit-icon">{{ limitStatus.limitReached ? 'lock_clock' : 'bolt' }}</mat-icon>
+            <span *ngIf="!limitStatus.limitReached">
+              <strong>{{ limitStatus.swipesRemaining }}</strong> / 5 swipes left today
+            </span>
+            <span *ngIf="limitStatus.limitReached">
+              Daily Limit Reached (0/5 left)
+            </span>
+          </div>
         </div>
 
         <!-- Loading State -->
@@ -40,8 +52,36 @@ import { trigger, state, style, animate, transition } from '@angular/animations'
           <p class="state-text">Finding students near you...</p>
         </div>
 
-        <!-- Empty State -->
-        <div class="state-card empty-card" *ngIf="!loading && (!users || users.length === 0 || currentIndex >= users.length)">
+        <!-- 24-HOUR DAILY LIMIT REACHED CARD -->
+        <div class="state-card limit-card" *ngIf="!loading && limitStatus.limitReached">
+          <div class="lock-icon-wrap">
+            <mat-icon class="huge-icon">hourglass_empty</mat-icon>
+          </div>
+          <h2 class="empty-title">Daily Limit Reached!</h2>
+          <p class="empty-desc">
+            You can swipe a maximum of <strong>5 profiles in 24 hours</strong>.
+            This ensures thoughtful connections and better matches for everyone on campus!
+          </p>
+
+          <div class="reset-time-box" *ngIf="limitStatus.resetInMinutes > 0">
+            <mat-icon class="time-icon">schedule</mat-icon>
+            <span>Next swipe available in ~{{ formatResetTime(limitStatus.resetInMinutes) }}</span>
+          </div>
+
+          <div class="limit-actions-row">
+            <button mat-raised-button color="primary" routerLink="/matches" class="limit-btn">
+              <mat-icon>favorite</mat-icon>
+              <span>View Matches</span>
+            </button>
+            <button mat-button routerLink="/profile" class="profile-link-btn">
+              <mat-icon>edit</mat-icon>
+              <span>Update Profile</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Empty State (Limit not reached, but no more profiles in feed) -->
+        <div class="state-card empty-card" *ngIf="!loading && !limitStatus.limitReached && (!users || users.length === 0 || currentIndex >= users.length)">
           <div class="empty-icon-wrap">
             <mat-icon class="huge-icon">favorite_border</mat-icon>
           </div>
@@ -53,8 +93,8 @@ import { trigger, state, style, animate, transition } from '@angular/animations'
           </button>
         </div>
 
-        <!-- Swipe Card Stack -->
-        <div class="card-area" *ngIf="!loading && users && users.length > 0 && currentIndex < users.length">
+        <!-- Active Swipe Card Stack -->
+        <div class="card-area" *ngIf="!loading && !limitStatus.limitReached && users && users.length > 0 && currentIndex < users.length">
           <div class="card-wrapper" [@cardAnim]="cardState">
             <div class="tinder-card">
               <!-- Profile Photo & Gradient Overlay -->
@@ -99,7 +139,7 @@ import { trigger, state, style, animate, transition } from '@angular/animations'
 
           <!-- Bottom Action Buttons -->
           <div class="controls-row">
-            <button class="round-btn pass-btn" (click)="swipe('dislike')" [disabled]="swiping" title="Pass">
+            <button class="round-btn pass-btn" (click)="swipe('dislike')" [disabled]="swiping || limitStatus.limitReached" title="Pass">
               <mat-icon class="control-icon">close</mat-icon>
             </button>
 
@@ -107,7 +147,7 @@ import { trigger, state, style, animate, transition } from '@angular/animations'
               <span>{{ currentIndex + 1 }}</span> / {{ users.length }}
             </div>
 
-            <button class="round-btn like-btn" (click)="swipe('like')" [disabled]="swiping" title="Like">
+            <button class="round-btn like-btn" (click)="swipe('like')" [disabled]="swiping || limitStatus.limitReached" title="Like">
               <mat-icon class="control-icon">favorite</mat-icon>
             </button>
           </div>
@@ -156,6 +196,9 @@ import { trigger, state, style, animate, transition } from '@angular/animations'
     .discover-header {
       text-align: center;
       margin-bottom: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
     }
 
     .header-title {
@@ -173,21 +216,62 @@ import { trigger, state, style, animate, transition } from '@angular/animations'
       font-size: 0.95rem;
       font-weight: 500;
       margin-top: 4px;
+      margin-bottom: 12px;
+    }
+
+    /* 24-Hour Swipe Limit Pill */
+    .limit-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: #ecfdf5;
+      color: #059669;
+      border: 1px solid #a7f3d0;
+      padding: 6px 14px;
+      border-radius: 9999px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      box-shadow: 0 2px 6px rgba(5, 150, 105, 0.08);
+      transition: all 0.3s ease;
+    }
+
+    .limit-pill.warning {
+      background: #fffbeb;
+      color: #d97706;
+      border-color: #fde68a;
+    }
+
+    .limit-pill.exhausted {
+      background: #fef2f2;
+      color: #dc2626;
+      border-color: #fecaca;
+    }
+
+    .limit-icon {
+      font-size: 18px;
+      width: 18px;
+      height: 18px;
+      line-height: 18px;
     }
 
     /* State Cards */
     .state-card {
       background: white;
-      border-radius: 24px;
-      padding: 48px 24px;
+      border-radius: 28px;
+      padding: 44px 24px;
       display: flex;
       flex-direction: column;
       align-items: center;
       text-align: center;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+      box-shadow: 0 12px 35px rgba(0, 0, 0, 0.06);
       border: 1px solid #f1f5f9;
       width: 100%;
-      margin-top: 30px;
+      margin-top: 20px;
+    }
+
+    .limit-card {
+      background: linear-gradient(180deg, #ffffff 0%, #fff7ed 100%);
+      border: 2px solid #fed7aa;
     }
 
     .state-text {
@@ -196,7 +280,7 @@ import { trigger, state, style, animate, transition } from '@angular/animations'
       margin-top: 16px;
     }
 
-    .empty-icon-wrap {
+    .empty-icon-wrap, .lock-icon-wrap {
       width: 80px;
       height: 80px;
       border-radius: 50%;
@@ -207,6 +291,10 @@ import { trigger, state, style, animate, transition } from '@angular/animations'
       margin-bottom: 20px;
     }
 
+    .lock-icon-wrap {
+      background: #ffedd5;
+    }
+
     .huge-icon {
       font-size: 40px;
       width: 40px;
@@ -214,19 +302,67 @@ import { trigger, state, style, animate, transition } from '@angular/animations'
       color: #f43f5e;
     }
 
+    .lock-icon-wrap .huge-icon {
+      color: #ea580c;
+    }
+
     .empty-title {
-      font-size: 1.4rem;
-      font-weight: 700;
+      font-size: 1.5rem;
+      font-weight: 800;
       color: #0f172a;
       margin-bottom: 8px;
     }
 
     .empty-desc {
       color: #64748b;
-      font-size: 0.92rem;
-      max-width: 280px;
+      font-size: 0.95rem;
+      max-width: 320px;
       margin-bottom: 24px;
-      line-height: 1.4;
+      line-height: 1.5;
+    }
+
+    /* Reset Timer Box */
+    .reset-time-box {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: white;
+      padding: 10px 18px;
+      border-radius: 14px;
+      border: 1px solid #fed7aa;
+      color: #c2410c;
+      font-weight: 600;
+      font-size: 0.9rem;
+      margin-bottom: 24px;
+      box-shadow: 0 4px 12px rgba(234, 88, 12, 0.08);
+    }
+
+    .time-icon {
+      font-size: 20px;
+      width: 20px;
+      height: 20px;
+    }
+
+    .limit-actions-row {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      width: 100%;
+      max-width: 260px;
+    }
+
+    .limit-btn {
+      height: 46px !important;
+      border-radius: 14px !important;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .profile-link-btn {
+      color: #64748b !important;
+      font-weight: 600 !important;
     }
 
     .reload-btn {
@@ -414,7 +550,7 @@ import { trigger, state, style, animate, transition } from '@angular/animations'
     }
 
     .round-btn:disabled {
-      opacity: 0.6;
+      opacity: 0.5;
       cursor: not-allowed;
       transform: none !important;
     }
@@ -522,6 +658,14 @@ export class DiscoverComponent implements OnInit {
   showMatch = false;
   matchedName = '';
 
+  limitStatus = {
+    maxLimit: 5,
+    swipesUsed: 0,
+    swipesRemaining: 5,
+    limitReached: false,
+    resetInMinutes: 0
+  };
+
   get currentUser(): any {
     return this.users && this.users[this.currentIndex] ? this.users[this.currentIndex] : null;
   }
@@ -529,7 +673,18 @@ export class DiscoverComponent implements OnInit {
   constructor(private api: ApiService, private snack: MatSnackBar) {}
 
   ngOnInit() {
+    this.loadSwipeLimit();
     this.loadUsers();
+  }
+
+  loadSwipeLimit() {
+    this.api.getSwipeLimit().subscribe({
+      next: (status: any) => {
+        if (status) {
+          this.limitStatus = status;
+        }
+      }
+    });
   }
 
   loadUsers() {
@@ -544,6 +699,16 @@ export class DiscoverComponent implements OnInit {
         this.loading = false;
       }
     });
+  }
+
+  formatResetTime(minutes: number): string {
+    if (!minutes || minutes <= 0) return 'soon';
+    const hours = Math.floor(minutes / 60);
+    const mins = minutes % 60;
+    if (hours > 0) {
+      return `${hours}h ${mins}m`;
+    }
+    return `${mins} minutes`;
   }
 
   getPhoto(user: any): string {
@@ -567,7 +732,7 @@ export class DiscoverComponent implements OnInit {
   }
 
   swipe(action: 'like' | 'dislike') {
-    if (this.swiping || !this.currentUser) return;
+    if (this.swiping || !this.currentUser || this.limitStatus.limitReached) return;
     this.swiping = true;
     this.cardState = action === 'like' ? 'liked' : 'disliked';
 
@@ -575,22 +740,40 @@ export class DiscoverComponent implements OnInit {
     const name = this.currentUser.name;
 
     setTimeout(() => {
-      if (action === 'like') {
-        this.api.likeUser(userId).subscribe({
-          next: (res: any) => {
-            if (res?.matched) {
+      const swipeObs = action === 'like' ? this.api.likeUser(userId) : this.api.dislikeUser(userId);
+
+      swipeObs.subscribe({
+        next: (res: any) => {
+          if (res?.status === 'limit_reached') {
+            this.snack.open(res.error || 'Daily limit reached! (5 profiles per 24 hours)', 'OK', { duration: 4000 });
+            this.limitStatus.limitReached = true;
+            this.limitStatus.swipesRemaining = 0;
+            if (res.resetInMinutes) {
+              this.limitStatus.resetInMinutes = res.resetInMinutes;
+            }
+          } else {
+            if (res?.swipesRemaining !== undefined) {
+              this.limitStatus.swipesRemaining = res.swipesRemaining;
+              if (res.swipesRemaining <= 0) {
+                this.limitStatus.limitReached = true;
+              }
+            }
+
+            if (res?.status === 'matched') {
               this.matchedName = name;
               this.showMatch = true;
             }
-          }
-        });
-      } else {
-        this.api.dislikeUser(userId).subscribe();
-      }
 
-      this.currentIndex++;
-      this.cardState = 'center';
-      this.swiping = false;
+            this.currentIndex++;
+          }
+          this.cardState = 'center';
+          this.swiping = false;
+        },
+        error: () => {
+          this.cardState = 'center';
+          this.swiping = false;
+        }
+      });
     }, 320);
   }
 }

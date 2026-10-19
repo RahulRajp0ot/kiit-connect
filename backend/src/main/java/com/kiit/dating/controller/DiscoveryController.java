@@ -23,6 +23,11 @@ public class DiscoveryController {
         return ResponseEntity.ok(discoveryService.getDiscoverableUsers(user.getId()));
     }
 
+    @GetMapping("/swipe/limit")
+    public ResponseEntity<Map<String, Object>> getSwipeLimit(@AuthenticationPrincipal User user) {
+        return ResponseEntity.ok(discoveryService.getSwipeLimitStatus(user.getId()));
+    }
+
     @PostMapping("/swipe/{userId}/like")
     public ResponseEntity<Map<String, Object>> like(@AuthenticationPrincipal User user,
                                                      @PathVariable Long userId) {

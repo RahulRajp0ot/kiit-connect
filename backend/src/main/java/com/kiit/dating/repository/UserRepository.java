@@ -23,7 +23,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
           AND u.active = true
           AND u.profileComplete = true
           AND u.id NOT IN (
-              SELECT l.toUser.id FROM Like l WHERE l.fromUser.id = :currentUserId
+              SELECT s.toUser.id FROM UserSwipe s WHERE s.fromUser.id = :currentUserId
           )
         ORDER BY FUNCTION('RANDOM')
         """)

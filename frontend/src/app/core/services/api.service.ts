@@ -41,6 +41,9 @@ export class ApiService {
   }
 
   // ── Discovery ─────────────────────────────────────────
+  getSwipeLimit(): Observable<any> {
+    return this.http.get(`${this.base}/swipe/limit`);
+  }
   getDiscoverUsers(): Observable<any[]> {
     return this.http.get<any[]>(`${this.base}/discover`);
   }
