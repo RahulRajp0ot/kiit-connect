@@ -66,6 +66,11 @@ public class AdminController {
         return ResponseEntity.ok(profileService.toDTO(userRepository.save(user)));
     }
 
+    @PutMapping("/users/{id}/reject-deletion")
+    public ResponseEntity<UserDTO> rejectDeletion(@PathVariable Long id) {
+        return ResponseEntity.ok(profileService.cancelAccountDeletion(id));
+    }
+
     @DeleteMapping("/users/{id}")
     public ResponseEntity<Void> deleteUser(@PathVariable Long id) {
         profileService.deleteMyAccount(id);

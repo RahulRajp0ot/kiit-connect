@@ -48,6 +48,10 @@ import { ApiService } from '../../core/services/api.service';
             <span class="stat-num">{{ stats.pending }}</span>
             <span class="stat-name">Waiting Review</span>
           </div>
+          <div class="stat-card deletion-stat-card" [class.has-deletion]="stats.deletionRequests > 0">
+            <span class="stat-num">{{ stats.deletionRequests }}</span>
+            <span class="stat-name">Deletion Requests</span>
+          </div>
           <div class="stat-card" [class.matching-on]="settings.matchingEnabled" [class.matching-off]="!settings.matchingEnabled">
             <span class="stat-num">{{ settings.matchingEnabled ? 'ON' : 'PAUSED' }}</span>
             <span class="stat-name">Matching Status</span>
@@ -257,15 +261,29 @@ import { ApiService } from '../../core/services/api.service';
                 <th mat-header-cell *matHeaderCellDef>Actions</th>
                 <td mat-cell *matCellDef="let u">
                   <div class="actions-cell">
-                    <button mat-icon-button [title]="u.active ? 'Block Student' : 'Unblock Student'"
-                            (click)="toggleUser(u)" class="status-btn">
-                      <mat-icon [style.color]="u.active ? '#f59e0b' : '#10b981'">
-                        {{ u.active ? 'block' : 'check_circle' }}
-                      </mat-icon>
-                    </button>
-                    <button mat-icon-button title="Delete Account" (click)="deleteUser(u)" class="del-btn">
-                      <mat-icon>delete_outline</mat-icon>
-                    </button>
+                    <!-- Deletion Requested Action Group -->
+                    <div class="deletion-action-box" *ngIf="u.deletionRequested">
+                      <span class="del-req-tag">Delete Requested</span>
+                      <button mat-icon-button class="del-approve-btn" (click)="approveDeletion(u)" title="Approve & Permanently Delete Account">
+                        <mat-icon>delete_forever</mat-icon>
+                      </button>
+                      <button mat-icon-button class="del-reject-btn" (click)="rejectDeletion(u)" title="Reject Deletion Request (Keep Active)">
+                        <mat-icon>cancel</mat-icon>
+                      </button>
+                    </div>
+
+                    <!-- Normal Actions (when no deletion requested) -->
+                    <ng-container *ngIf="!u.deletionRequested">
+                      <button mat-icon-button [title]="u.active ? 'Block Student' : 'Unblock Student'"
+                              (click)="toggleUser(u)" class="status-btn">
+                        <mat-icon [style.color]="u.active ? '#f59e0b' : '#10b981'">
+                          {{ u.active ? 'block' : 'check_circle' }}
+                        </mat-icon>
+                      </button>
+                      <button mat-icon-button title="Delete Account" (click)="deleteUser(u)" class="del-btn">
+                        <mat-icon>delete_outline</mat-icon>
+                      </button>
+                    </ng-container>
                   </div>
                 </td>
               </ng-container>
@@ -346,6 +364,15 @@ import { ApiService } from '../../core/services/api.service';
 
     .stat-card.pending-card.has-pending .stat-num {
       color: #d97706;
+    }
+
+    .stat-card.deletion-stat-card.has-deletion {
+      border-color: #fca5a5;
+      background: #fff5f5;
+    }
+
+    .stat-card.deletion-stat-card.has-deletion .stat-num {
+      color: #dc2626;
     }
 
     .stat-card {
@@ -785,6 +812,51 @@ import { ApiService } from '../../core/services/api.service';
       color: #ef4444 !important;
     }
 
+    .deletion-action-box {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      border-radius: 12px;
+      padding: 2px 6px;
+    }
+
+    .del-req-tag {
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: #dc2626;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+      padding: 0 4px;
+    }
+
+    .del-approve-btn {
+      color: #dc2626 !important;
+      width: 28px !important;
+      height: 28px !important;
+    }
+
+    .del-approve-btn mat-icon {
+      font-size: 18px;
+      width: 18px;
+      height: 18px;
+      line-height: 18px;
+    }
+
+    .del-reject-btn {
+      color: #64748b !important;
+      width: 28px !important;
+      height: 28px !important;
+    }
+
+    .del-reject-btn mat-icon {
+      font-size: 18px;
+      width: 18px;
+      height: 18px;
+      line-height: 18px;
+    }
+
     @media (max-width: 900px) {
       .settings-grid {
         grid-template-columns: 1fr;
@@ -799,7 +871,7 @@ export class AdminComponent implements OnInit {
   users: any[] = [];
   loading = true;
   columns = ['name', 'email', 'gender', 'approval', 'status', 'swipeLimit', 'actions'];
-  stats = { total: 0, active: 0, pending: 0 };
+  stats = { total: 0, active: 0, pending: 0, deletionRequests: 0 };
 
   settings: any = {
     matchingEnabled: false,
@@ -830,6 +902,7 @@ export class AdminComponent implements OnInit {
         this.stats.total = this.users.length;
         this.stats.active = this.users.filter(u => u.active).length;
         this.stats.pending = this.users.filter(u => u.approvalStatus === 'PENDING' || !u.approvalStatus).length;
+        this.stats.deletionRequests = this.users.filter(u => u.deletionRequested).length;
         this.loading = false;
       },
       error: () => {
@@ -952,8 +1025,36 @@ export class AdminComponent implements OnInit {
         this.stats.total--;
         if (user.active) this.stats.active--;
         this.stats.pending = this.users.filter(u => u.approvalStatus === 'PENDING' || !u.approvalStatus).length;
+        this.stats.deletionRequests = this.users.filter(u => u.deletionRequested).length;
         this.snack.open('Student account deleted', '', { duration: 2500 });
       }
+    });
+  }
+
+  approveDeletion(user: any) {
+    if (!confirm(`Are you sure you want to approve deletion for ${user.name}? This will permanently wipe all their photos, matches, and chats.`)) return;
+    this.api.adminDelete(user.id).subscribe({
+      next: () => {
+        this.users = this.users.filter(u => u.id !== user.id);
+        this.stats.total--;
+        if (user.active) this.stats.active--;
+        this.stats.deletionRequests = this.users.filter(u => u.deletionRequested).length;
+        this.stats.pending = this.users.filter(u => u.approvalStatus === 'PENDING' || !u.approvalStatus).length;
+        this.snack.open(`Account for ${user.name} deleted permanently ✅`, 'OK', { duration: 3000 });
+      },
+      error: () => this.snack.open('Failed to delete account', 'Dismiss', { duration: 3000 })
+    });
+  }
+
+  rejectDeletion(user: any) {
+    this.api.adminRejectDeletion(user.id).subscribe({
+      next: () => {
+        user.deletionRequested = false;
+        user.deletionRequestedAt = null;
+        this.stats.deletionRequests = this.users.filter(u => u.deletionRequested).length;
+        this.snack.open(`Deletion request rejected for ${user.name}. Account kept active.`, 'OK', { duration: 3000 });
+      },
+      error: () => this.snack.open('Failed to reject deletion request', 'Dismiss', { duration: 3000 })
     });
   }
 

@@ -3,6 +3,7 @@ target/
 *.log
 .env
 *.env.local
+uploads/
 
 # IDE
 .idea/

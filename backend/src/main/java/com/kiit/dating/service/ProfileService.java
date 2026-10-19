@@ -11,14 +11,21 @@ import com.kiit.dating.repository.MessageRepository;
 import com.kiit.dating.repository.UserRepository;
 import com.kiit.dating.repository.UserSwipeRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -30,6 +37,12 @@ public class ProfileService {
     private final MessageRepository messageRepository;
     private final LikeRepository likeRepository;
     private final UserSwipeRepository userSwipeRepository;
+
+    @Value("${cloudinary.cloud-name:}")
+    private String cloudName;
+
+    @Value("${server.port:8088}")
+    private String serverPort;
 
     @Transactional
     public void deleteMyAccount(Long userId) {
@@ -68,20 +81,36 @@ public class ProfileService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-        String url;
-        try {
-            Map<String, Object> uploadResult = cloudinary.uploader().upload(
-                    file.getBytes(),
-                    ObjectUtils.asMap(
-                            "folder", "kiit-dating/profile-photos",
-                            "transformation", "q_auto,f_auto,w_600,c_fill,g_face"
-                    )
-            );
-            url = (String) uploadResult.get("secure_url");
-        } catch (Exception e) {
-            // Local fallback when Cloudinary is not configured or in offline mode
-            String mime = file.getContentType() != null ? file.getContentType() : "image/jpeg";
-            url = "data:" + mime + ";base64," + java.util.Base64.getEncoder().encodeToString(file.getBytes());
+        String url = null;
+        if (cloudName != null && !cloudName.isBlank() && !cloudName.equals("your_cloud_name")) {
+            try {
+                Map<String, Object> uploadResult = cloudinary.uploader().upload(
+                        file.getBytes(),
+                        ObjectUtils.asMap(
+                                "folder", "kiit-dating/profile-photos",
+                                "transformation", "q_auto,f_auto,w_600,c_fill,g_face"
+                        )
+                );
+                url = (String) uploadResult.get("secure_url");
+            } catch (Exception ignored) {}
+        }
+
+        if (url == null || url.isBlank()) {
+            // Robust local static storage in uploads/ folder
+            Path uploadDir = Paths.get("uploads");
+            File dir = uploadDir.toFile();
+            if (!dir.exists()) {
+                dir.mkdirs();
+            }
+            String originalFilename = file.getOriginalFilename();
+            String extension = ".jpg";
+            if (originalFilename != null && originalFilename.contains(".")) {
+                extension = originalFilename.substring(originalFilename.lastIndexOf("."));
+            }
+            String filename = UUID.randomUUID().toString() + extension;
+            Path targetPath = uploadDir.resolve(filename);
+            Files.write(targetPath, file.getBytes());
+            url = "http://localhost:" + serverPort + "/uploads/" + filename;
         }
 
         List<String> photos = user.getPhotoUrls() == null ? new ArrayList<>() : new ArrayList<>(user.getPhotoUrls());
@@ -110,6 +139,24 @@ public class ProfileService {
         userRepository.save(user);
     }
 
+    @Transactional
+    public UserDTO requestAccountDeletion(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        user.setDeletionRequested(true);
+        user.setDeletionRequestedAt(LocalDateTime.now());
+        return toDTO(userRepository.save(user));
+    }
+
+    @Transactional
+    public UserDTO cancelAccountDeletion(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        user.setDeletionRequested(false);
+        user.setDeletionRequestedAt(null);
+        return toDTO(userRepository.save(user));
+    }
+
     public UserDTO toDTO(User user) {
         return UserDTO.builder()
                 .id(user.getId())
@@ -125,6 +172,8 @@ public class ProfileService {
                 .profileComplete(user.isProfileComplete())
                 .role(user.getRole())
                 .approvalStatus(user.getApprovalStatus())
+                .deletionRequested(user.isDeletionRequested())
+                .deletionRequestedAt(user.getDeletionRequestedAt())
                 .customDailySwipeLimit(user.getCustomDailySwipeLimit())
                 .build();
     }

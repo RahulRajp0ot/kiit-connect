@@ -30,10 +30,10 @@ public class ProfileController {
     }
 
     @PostMapping("/me/photo")
-    public ResponseEntity<String> uploadPhoto(@AuthenticationPrincipal User user,
-                                              @RequestParam("file") MultipartFile file) throws IOException {
+    public ResponseEntity<java.util.Map<String, String>> uploadPhoto(@AuthenticationPrincipal User user,
+                                                                    @RequestParam("file") MultipartFile file) throws IOException {
         String url = profileService.uploadPhoto(user.getId(), file);
-        return ResponseEntity.ok(url);
+        return ResponseEntity.ok(java.util.Map.of("photoUrl", url));
     }
 
     @DeleteMapping("/me/photo")
@@ -41,6 +41,16 @@ public class ProfileController {
                                             @RequestParam String url) {
         profileService.deletePhoto(user.getId(), url);
         return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/me/request-deletion")
+    public ResponseEntity<UserDTO> requestAccountDeletion(@AuthenticationPrincipal User user) {
+        return ResponseEntity.ok(profileService.requestAccountDeletion(user.getId()));
+    }
+
+    @PostMapping("/me/cancel-deletion")
+    public ResponseEntity<UserDTO> cancelAccountDeletion(@AuthenticationPrincipal User user) {
+        return ResponseEntity.ok(profileService.cancelAccountDeletion(user.getId()));
     }
 
     @DeleteMapping("/me")

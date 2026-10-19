@@ -107,8 +107,29 @@ import { COMMA, ENTER } from '@angular/cdk/keycodes';
         </mat-card>
       </div>
 
-      <!-- Danger Zone / Delete Account -->
-      <div class="danger-zone-card">
+      <!-- Danger Zone / When Deletion Request is Pending -->
+      <div class="danger-zone-card pending-card" *ngIf="deletionRequested">
+        <div class="danger-content">
+          <div class="danger-icon-wrap pending-icon-wrap">
+            <mat-icon>hourglass_top</mat-icon>
+          </div>
+          <div class="danger-text">
+            <span class="pending-pill-badge">Request Pending Admin Approval</span>
+            <h3 class="danger-title pending-title">Sent to Admin for Deletion</h3>
+            <p class="danger-desc">
+              Your account deletion request has been submitted to the campus administrator for verification. All your profile data, photos, matches, and chats will be permanently removed once approved.
+            </p>
+          </div>
+        </div>
+        <button mat-stroked-button class="cancel-del-btn" (click)="cancelDeletionRequest()" [disabled]="deleting">
+          <mat-spinner diameter="18" *ngIf="deleting"></mat-spinner>
+          <mat-icon *ngIf="!deleting">undo</mat-icon>
+          <span>Cancel Deletion Request</span>
+        </button>
+      </div>
+
+      <!-- Danger Zone / Normal State -->
+      <div class="danger-zone-card" *ngIf="!deletionRequested">
         <div class="danger-content">
           <div class="danger-icon-wrap">
             <mat-icon>warning_amber</mat-icon>
@@ -116,14 +137,14 @@ import { COMMA, ENTER } from '@angular/cdk/keycodes';
           <div class="danger-text">
             <h3 class="danger-title">Delete Account</h3>
             <p class="danger-desc">
-              Permanently remove your profile, photos, matches, and messages. This action cannot be undone.
+              Submit an account deletion request. Once reviewed and approved by the administrator, your profile, photos, matches, and messages will be permanently erased.
             </p>
           </div>
         </div>
-        <button mat-stroked-button class="delete-acc-btn" (click)="deleteMyAccount()" [disabled]="deleting">
+        <button mat-stroked-button class="delete-acc-btn" (click)="requestDeletion()" [disabled]="deleting">
           <mat-spinner diameter="18" *ngIf="deleting"></mat-spinner>
           <mat-icon *ngIf="!deleting">delete_forever</mat-icon>
-          <span>{{ deleting ? 'Deleting...' : 'Delete My Account' }}</span>
+          <span>{{ deleting ? 'Submitting...' : 'Request Account Deletion' }}</span>
         </button>
       </div>
     </div>
@@ -235,6 +256,43 @@ import { COMMA, ENTER } from '@angular/cdk/keycodes';
       gap: 20px;
       box-shadow: 0 4px 16px rgba(239, 68, 68, 0.05);
     }
+    .danger-zone-card.pending-card {
+      background: #fffdf5;
+      border-color: #fde68a;
+    }
+    .pending-icon-wrap {
+      background: #fef3c7 !important;
+      color: #d97706 !important;
+    }
+    .pending-title {
+      color: #b45309 !important;
+    }
+    .pending-pill-badge {
+      display: inline-block;
+      background: #fef3c7;
+      color: #b45309;
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+      padding: 2px 8px;
+      border-radius: 9999px;
+      margin-bottom: 4px;
+    }
+    .cancel-del-btn {
+      color: #475569 !important;
+      border-color: #cbd5e1 !important;
+      font-weight: 600 !important;
+      height: 44px !important;
+      border-radius: 12px !important;
+      white-space: nowrap;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .cancel-del-btn:hover:not(:disabled) {
+      background: #f1f5f9 !important;
+    }
     @media (max-width: 600px) {
       .danger-zone-card {
         flex-direction: column;
@@ -295,6 +353,8 @@ export class ProfileComponent implements OnInit {
   interests: string[] = [];
   saving = false;
   uploading = false;
+  deleting = false;
+  deletionRequested = false;
 
   constructor(
     private fb: FormBuilder,
@@ -313,6 +373,7 @@ export class ProfileComponent implements OnInit {
         this.profileForm.patchValue({ bio: user.bio || '' });
         this.interests = user.interests || [];
         this.photos = user.photoUrls || user.photos || [];
+        this.deletionRequested = !!user.deletionRequested;
       }
     });
   }
@@ -330,18 +391,25 @@ export class ProfileComponent implements OnInit {
   }
 
   uploadPhoto(event: Event) {
-    const file = (event.target as HTMLInputElement).files?.[0];
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
     if (!file) return;
     this.uploading = true;
     this.api.uploadPhoto(file).subscribe({
       next: (res: any) => {
-        this.photos.push(res.photoUrl);
+        const url = typeof res === 'string' ? res : (res?.photoUrl || res?.url);
+        if (url) {
+          this.photos.push(url);
+        }
         this.uploading = false;
-        this.snack.open('Photo uploaded! 📸', '', { duration: 2000 });
+        input.value = '';
+        this.snack.open('Photo uploaded! 📸', '', { duration: 2500 });
       },
-      error: () => {
+      error: (err: any) => {
         this.uploading = false;
-        this.snack.open('Upload failed', '', { duration: 2000 });
+        input.value = '';
+        const msg = err.error?.message || err.error || 'Failed to upload photo. Please try a different image.';
+        this.snack.open(msg, 'Dismiss', { duration: 3000 });
       }
     });
   }
@@ -373,27 +441,40 @@ export class ProfileComponent implements OnInit {
     });
   }
 
-  deleting = false;
-
-  deleteMyAccount() {
+  requestDeletion() {
     const confirmed = confirm(
-      "⚠️ Are you sure you want to permanently delete your KIIT Dating account?\n\n" +
-      "• All your profile information & photos will be removed.\n" +
-      "• All your matches and conversation messages will be erased.\n" +
-      "• This action is permanent and cannot be reversed."
+      "⚠️ Are you sure you want to request account deletion?\n\n" +
+      "This request will be sent to the campus administrator for review and approval.\n" +
+      "Once approved by the admin, all your photos, matches, and conversation messages will be permanently deleted."
     );
 
     if (!confirmed) return;
 
     this.deleting = true;
-    this.api.deleteMyAccount().subscribe({
+    this.api.requestAccountDeletion().subscribe({
       next: () => {
-        this.snack.open('Your account has been deleted permanently.', 'OK', { duration: 4000 });
-        this.auth.logout();
+        this.deleting = false;
+        this.deletionRequested = true;
+        this.snack.open('Deletion request submitted to admin for approval ⏳', 'OK', { duration: 4000 });
       },
       error: () => {
         this.deleting = false;
-        this.snack.open('Failed to delete account. Please try again.', 'Dismiss', { duration: 3000 });
+        this.snack.open('Failed to submit deletion request', 'Dismiss', { duration: 3000 });
+      }
+    });
+  }
+
+  cancelDeletionRequest() {
+    this.deleting = true;
+    this.api.cancelAccountDeletion().subscribe({
+      next: () => {
+        this.deleting = false;
+        this.deletionRequested = false;
+        this.snack.open('Deletion request cancelled ✅', 'OK', { duration: 3000 });
+      },
+      error: () => {
+        this.deleting = false;
+        this.snack.open('Failed to cancel deletion request', 'Dismiss', { duration: 3000 });
       }
     });
   }

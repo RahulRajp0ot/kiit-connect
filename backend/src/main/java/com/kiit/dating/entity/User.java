@@ -51,7 +51,7 @@ public class User implements UserDetails {
 
     @ElementCollection
     @CollectionTable(name = "user_photos", joinColumns = @JoinColumn(name = "user_id"))
-    @Column(name = "photo_url")
+    @Column(name = "photo_url", length = 2000)
     private List<String> photoUrls;
 
     @Enumerated(EnumType.STRING)
@@ -64,6 +64,11 @@ public class User implements UserDetails {
     @Column(nullable = false)
     @Builder.Default
     private ApprovalStatus approvalStatus = ApprovalStatus.PENDING;
+
+    @Builder.Default
+    private boolean deletionRequested = false;
+
+    private LocalDateTime deletionRequestedAt;
 
     // Specific limit set by admin; if null, user follows global default
     private Integer customDailySwipeLimit;
