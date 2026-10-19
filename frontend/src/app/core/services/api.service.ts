@@ -36,6 +36,9 @@ export class ApiService {
   deletePhoto(url: string): Observable<void> {
     return this.http.delete<void>(`${this.base}/profile/me/photo?url=${encodeURIComponent(url)}`);
   }
+  deleteMyAccount(): Observable<void> {
+    return this.http.delete<void>(`${this.base}/profile/me`);
+  }
   getUserProfile(id: number): Observable<any> {
     return this.http.get(`${this.base}/profile/${id}`);
   }
@@ -84,6 +87,12 @@ export class ApiService {
   }
   adminDelete(id: number): Observable<void> {
     return this.http.delete<void>(`${this.base}/admin/users/${id}`);
+  }
+  adminApproveUser(id: number): Observable<any> {
+    return this.http.put(`${this.base}/admin/users/${id}/approve`, {});
+  }
+  adminRejectUser(id: number): Observable<any> {
+    return this.http.put(`${this.base}/admin/users/${id}/reject`, {});
   }
   adminSetUserLimit(userId: number, limit: number | null): Observable<any> {
     return this.http.put(`${this.base}/admin/users/${userId}/limit`, { limit });

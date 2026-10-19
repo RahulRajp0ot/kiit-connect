@@ -199,6 +199,7 @@ public class DataInitializer implements CommandLineRunner {
 
     private void seedUserIfNotExists(User user) {
         if (!userRepository.existsByEmail(user.getEmail())) {
+            user.setApprovalStatus(User.ApprovalStatus.APPROVED);
             userRepository.save(user);
         }
     }

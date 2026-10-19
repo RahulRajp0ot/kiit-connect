@@ -43,6 +43,12 @@ public class ProfileController {
         return ResponseEntity.noContent().build();
     }
 
+    @DeleteMapping("/me")
+    public ResponseEntity<Void> deleteMyAccount(@AuthenticationPrincipal User user) {
+        profileService.deleteMyAccount(user.getId());
+        return ResponseEntity.noContent().build();
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<UserDTO> getUserProfile(@PathVariable Long id) {
         return ResponseEntity.ok(profileService.getProfile(id));

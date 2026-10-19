@@ -5,9 +5,14 @@ import com.cloudinary.utils.ObjectUtils;
 import com.kiit.dating.dto.ProfileUpdateRequest;
 import com.kiit.dating.dto.UserDTO;
 import com.kiit.dating.entity.User;
+import com.kiit.dating.repository.LikeRepository;
+import com.kiit.dating.repository.MatchRepository;
+import com.kiit.dating.repository.MessageRepository;
 import com.kiit.dating.repository.UserRepository;
+import com.kiit.dating.repository.UserSwipeRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
@@ -21,12 +26,26 @@ public class ProfileService {
 
     private final UserRepository userRepository;
     private final Cloudinary cloudinary;
+    private final MatchRepository matchRepository;
+    private final MessageRepository messageRepository;
+    private final LikeRepository likeRepository;
+    private final UserSwipeRepository userSwipeRepository;
+
+    @Transactional
+    public void deleteMyAccount(Long userId) {
+        messageRepository.deleteAllByUserId(userId);
+        matchRepository.deleteAllByUserId(userId);
+        likeRepository.deleteAllByUserId(userId);
+        userSwipeRepository.deleteAllByUserId(userId);
+        userRepository.deleteById(userId);
+    }
 
     public UserDTO getProfile(Long userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
         return toDTO(user);
     }
+
 
     public UserDTO updateProfile(Long userId, ProfileUpdateRequest request) {
         User user = userRepository.findById(userId)
@@ -105,6 +124,7 @@ public class ProfileService {
                 .active(user.isActive())
                 .profileComplete(user.isProfileComplete())
                 .role(user.getRole())
+                .approvalStatus(user.getApprovalStatus())
                 .customDailySwipeLimit(user.getCustomDailySwipeLimit())
                 .build();
     }

@@ -22,6 +22,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
           AND u.gender != :gender
           AND u.active = true
           AND u.profileComplete = true
+          AND u.approvalStatus = com.kiit.dating.entity.User.ApprovalStatus.APPROVED
           AND u.id NOT IN (
               SELECT s.toUser.id FROM UserSwipe s WHERE s.fromUser.id = :currentUserId
           )

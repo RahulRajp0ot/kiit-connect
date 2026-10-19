@@ -35,7 +35,12 @@ import { trigger, state, style, animate, transition } from '@angular/animations'
           <p class="header-subtitle">Find your match on KIIT campus 💕</p>
 
           <!-- Status Indicator Badge -->
-          <div class="limit-pill" *ngIf="limitStatus.matchingEnabled"
+          <div class="limit-pill pending-pill" *ngIf="!loading && !limitStatus.isApproved">
+            <mat-icon class="limit-icon">hourglass_top</mat-icon>
+            <span>Waiting for Review</span>
+          </div>
+
+          <div class="limit-pill" *ngIf="!loading && limitStatus.isApproved && limitStatus.matchingEnabled"
                [class.warning]="limitStatus.swipesRemaining <= 2"
                [class.exhausted]="limitStatus.limitReached">
             <mat-icon class="limit-icon">{{ limitStatus.limitReached ? 'lock_clock' : 'bolt' }}</mat-icon>
@@ -47,7 +52,7 @@ import { trigger, state, style, animate, transition } from '@angular/animations'
             </span>
           </div>
 
-          <div class="limit-pill paused-pill" *ngIf="!limitStatus.matchingEnabled && !loading">
+          <div class="limit-pill paused-pill" *ngIf="!loading && limitStatus.isApproved && !limitStatus.matchingEnabled">
             <mat-icon class="limit-icon">pause_circle</mat-icon>
             <span>Matching is Paused</span>
           </div>
@@ -59,8 +64,42 @@ import { trigger, state, style, animate, transition } from '@angular/animations'
           <p class="state-text">Loading campus profiles...</p>
         </div>
 
-        <!-- 2. MATCHING DISABLED BY ADMIN CARD -->
-        <div class="state-card paused-card" *ngIf="!loading && !limitStatus.matchingEnabled">
+        <!-- 2. WAITING FOR REVIEW CARD -->
+        <div class="state-card review-card" *ngIf="!loading && !limitStatus.isApproved">
+          <div class="review-icon-wrap">
+            <mat-icon class="huge-icon review-icon">hourglass_top</mat-icon>
+          </div>
+          <div class="status-badge-chip review-badge">
+            <mat-icon class="badge-icon">verified_user</mat-icon>
+            <span>Account Under Review</span>
+          </div>
+
+          <h2 class="empty-title">Waiting for Review</h2>
+
+          <div class="announcement-quote-box review-box">
+            <mat-icon class="quote-mark">format_quote</mat-icon>
+            <p class="quote-text">Your campus profile is currently pending administrator verification. Swiping and matching will be unlocked as soon as an admin approves your account.</p>
+            <span class="quote-author">— KIIT Dating Verification Team</span>
+          </div>
+
+          <p class="empty-desc">
+            Make sure your profile has your real college photo and bio filled out to get verified faster!
+          </p>
+
+          <div class="limit-actions-row">
+            <button mat-raised-button color="primary" (click)="loadAll()" class="limit-btn">
+              <mat-icon>refresh</mat-icon>
+              <span>Refresh Status</span>
+            </button>
+            <button mat-button routerLink="/profile" class="profile-link-btn">
+              <mat-icon>edit</mat-icon>
+              <span>Complete My Profile</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- 3. MATCHING DISABLED BY ADMIN CARD -->
+        <div class="state-card paused-card" *ngIf="!loading && limitStatus.isApproved && !limitStatus.matchingEnabled">
           <div class="speaker-icon-wrap">
             <mat-icon class="huge-icon speaker">campaign</mat-icon>
           </div>
@@ -94,8 +133,8 @@ import { trigger, state, style, animate, transition } from '@angular/animations'
           </div>
         </div>
 
-        <!-- 3. DAILY SWIPE LIMIT REACHED CARD -->
-        <div class="state-card limit-card" *ngIf="!loading && limitStatus.matchingEnabled && limitStatus.limitReached">
+        <!-- 4. DAILY SWIPE LIMIT REACHED CARD -->
+        <div class="state-card limit-card" *ngIf="!loading && limitStatus.isApproved && limitStatus.matchingEnabled && limitStatus.limitReached">
           <div class="lock-icon-wrap">
             <mat-icon class="huge-icon">hourglass_empty</mat-icon>
           </div>
@@ -122,8 +161,8 @@ import { trigger, state, style, animate, transition } from '@angular/animations'
           </div>
         </div>
 
-        <!-- 4. Empty State (Matching is on, limit not reached, but all seen) -->
-        <div class="state-card empty-card" *ngIf="!loading && limitStatus.matchingEnabled && !limitStatus.limitReached && (!users || users.length === 0 || currentIndex >= users.length)">
+        <!-- 5. Empty State (Matching is on, limit not reached, but all seen) -->
+        <div class="state-card empty-card" *ngIf="!loading && limitStatus.isApproved && limitStatus.matchingEnabled && !limitStatus.limitReached && (!users || users.length === 0 || currentIndex >= users.length)">
           <div class="empty-icon-wrap">
             <mat-icon class="huge-icon">favorite_border</mat-icon>
           </div>
@@ -135,8 +174,8 @@ import { trigger, state, style, animate, transition } from '@angular/animations'
           </button>
         </div>
 
-        <!-- 5. Active Swipe Card Stack -->
-        <div class="card-area" *ngIf="!loading && limitStatus.matchingEnabled && !limitStatus.limitReached && users && users.length > 0 && currentIndex < users.length">
+        <!-- 6. Active Swipe Card Stack -->
+        <div class="card-area" *ngIf="!loading && limitStatus.isApproved && limitStatus.matchingEnabled && !limitStatus.limitReached && users && users.length > 0 && currentIndex < users.length">
           <div class="card-wrapper" [@cardAnim]="cardState">
             <div class="tinder-card">
               <!-- Profile Photo & Gradient Overlay -->
@@ -293,6 +332,44 @@ import { trigger, state, style, animate, transition } from '@angular/animations'
       background: #fff7ed;
       color: #ea580c;
       border-color: #ffedd5;
+    }
+
+    .limit-pill.pending-pill {
+      background: #fef3c7;
+      color: #b45309;
+      border-color: #fde68a;
+    }
+
+    .review-card {
+      background: linear-gradient(180deg, #ffffff 0%, #fffdf5 100%);
+      border: 2px solid #fde68a;
+    }
+
+    .review-icon-wrap {
+      width: 84px;
+      height: 84px;
+      border-radius: 50%;
+      background: #fef3c7;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 16px;
+    }
+
+    .huge-icon.review-icon {
+      font-size: 44px;
+      width: 44px;
+      height: 44px;
+      color: #d97706;
+    }
+
+    .review-badge {
+      background: #fef3c7;
+      color: #b45309;
+    }
+
+    .review-box {
+      border-left-color: #f59e0b;
     }
 
     .limit-icon {
@@ -792,6 +869,8 @@ export class DiscoverComponent implements OnInit {
   limitStatus = {
     matchingEnabled: false,
     matchingDisabledMessage: '',
+    approvalStatus: 'APPROVED',
+    isApproved: true,
     maxLimit: 5,
     defaultLimit: 5,
     hasCustomLimit: false,
@@ -816,10 +895,18 @@ export class DiscoverComponent implements OnInit {
     this.api.getSwipeLimit().subscribe({
       next: (status: any) => {
         if (status) {
-          this.limitStatus = status;
+          const isApproved = status.isApproved !== undefined
+            ? status.isApproved
+            : (status.approvalStatus ? status.approvalStatus === 'APPROVED' : true);
+
+          this.limitStatus = {
+            ...this.limitStatus,
+            ...status,
+            isApproved
+          };
         }
 
-        if (this.limitStatus.matchingEnabled) {
+        if (this.limitStatus.isApproved && this.limitStatus.matchingEnabled) {
           this.loadUsers();
         } else {
           this.loading = false;
@@ -875,7 +962,7 @@ export class DiscoverComponent implements OnInit {
   }
 
   swipe(action: 'like' | 'dislike') {
-    if (this.swiping || !this.currentUser || this.limitStatus.limitReached || !this.limitStatus.matchingEnabled) return;
+    if (this.swiping || !this.currentUser || !this.limitStatus.isApproved || this.limitStatus.limitReached || !this.limitStatus.matchingEnabled) return;
     this.swiping = true;
     this.cardState = action === 'like' ? 'liked' : 'disliked';
 
@@ -887,7 +974,11 @@ export class DiscoverComponent implements OnInit {
 
       swipeObs.subscribe({
         next: (res: any) => {
-          if (res?.status === 'matching_disabled') {
+          if (res?.status === 'pending_review') {
+            this.snack.open(res.error || 'Your account is waiting for admin review before matching.', 'OK', { duration: 4000 });
+            this.limitStatus.isApproved = false;
+            this.limitStatus.approvalStatus = 'PENDING';
+          } else if (res?.status === 'matching_disabled') {
             this.snack.open(res.message || 'Campus matching has been paused by admin.', 'OK', { duration: 4000 });
             this.limitStatus.matchingEnabled = false;
             this.limitStatus.matchingDisabledMessage = res.message;

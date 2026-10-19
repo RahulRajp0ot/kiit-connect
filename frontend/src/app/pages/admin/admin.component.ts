@@ -34,7 +34,7 @@ import { ApiService } from '../../core/services/api.service';
           <p class="subtitle">Manage matching, swipe limits, college domains, and students</p>
         </div>
 
-        <!-- 4 Stats Cards -->
+        <!-- 5 Stats Cards -->
         <div class="stats-grid">
           <div class="stat-card">
             <span class="stat-num">{{ stats.total }}</span>
@@ -43,6 +43,10 @@ import { ApiService } from '../../core/services/api.service';
           <div class="stat-card active">
             <span class="stat-num">{{ stats.active }}</span>
             <span class="stat-name">Active</span>
+          </div>
+          <div class="stat-card pending-card" [class.has-pending]="stats.pending > 0">
+            <span class="stat-num">{{ stats.pending }}</span>
+            <span class="stat-name">Waiting Review</span>
           </div>
           <div class="stat-card" [class.matching-on]="settings.matchingEnabled" [class.matching-off]="!settings.matchingEnabled">
             <span class="stat-num">{{ settings.matchingEnabled ? 'ON' : 'PAUSED' }}</span>
@@ -195,6 +199,34 @@ import { ApiService } from '../../core/services/api.service';
                 </td>
               </ng-container>
 
+              <!-- Approval / Verification Column -->
+              <ng-container matColumnDef="approval">
+                <th mat-header-cell *matHeaderCellDef>Verification</th>
+                <td mat-cell *matCellDef="let u">
+                  <div class="approval-cell">
+                    <span class="approval-pill"
+                          [class.approved]="u.approvalStatus === 'APPROVED'"
+                          [class.pending]="u.approvalStatus === 'PENDING' || !u.approvalStatus"
+                          [class.rejected]="u.approvalStatus === 'REJECTED'">
+                      <mat-icon class="pill-mini-icon">
+                        {{ u.approvalStatus === 'APPROVED' ? 'verified' : (u.approvalStatus === 'REJECTED' ? 'cancel' : 'hourglass_top') }}
+                      </mat-icon>
+                      {{ u.approvalStatus || 'PENDING' }}
+                    </span>
+                    <div class="approval-btn-group" *ngIf="u.role !== 'ADMIN'">
+                      <button mat-icon-button *ngIf="u.approvalStatus !== 'APPROVED'"
+                              class="mini-approve-btn" (click)="approveUser(u)" title="Approve student for matching">
+                        <mat-icon>check_circle</mat-icon>
+                      </button>
+                      <button mat-icon-button *ngIf="u.approvalStatus !== 'REJECTED'"
+                              class="mini-reject-btn" (click)="rejectUser(u)" title="Reject student">
+                        <mat-icon>cancel</mat-icon>
+                      </button>
+                    </div>
+                  </div>
+                </td>
+              </ng-container>
+
               <!-- Status Column -->
               <ng-container matColumnDef="status">
                 <th mat-header-cell *matHeaderCellDef>Status</th>
@@ -302,9 +334,18 @@ import { ApiService } from '../../core/services/api.service';
     /* Stats Grid */
     .stats-grid {
       display: grid;
-      grid-template-columns: repeat(4, 1fr);
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
       gap: 16px;
       margin-bottom: 24px;
+    }
+
+    .stat-card.pending-card.has-pending {
+      border-color: #fde68a;
+      background: #fffdf5;
+    }
+
+    .stat-card.pending-card.has-pending .stat-num {
+      color: #d97706;
     }
 
     .stat-card {
@@ -607,6 +648,79 @@ import { ApiService } from '../../core/services/api.service';
       border: 1px solid #fbcfe8;
     }
 
+    .approval-cell {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .approval-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 10px;
+      border-radius: 9999px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.3px;
+    }
+
+    .approval-pill.approved {
+      background: #ecfdf5;
+      color: #059669;
+      border: 1px solid #a7f3d0;
+    }
+
+    .approval-pill.pending {
+      background: #fef3c7;
+      color: #b45309;
+      border: 1px solid #fde68a;
+    }
+
+    .approval-pill.rejected {
+      background: #fef2f2;
+      color: #dc2626;
+      border: 1px solid #fecaca;
+    }
+
+    .pill-mini-icon {
+      font-size: 14px;
+      width: 14px;
+      height: 14px;
+      line-height: 14px;
+    }
+
+    .approval-btn-group {
+      display: flex;
+      align-items: center;
+    }
+
+    .mini-approve-btn {
+      width: 28px !important;
+      height: 28px !important;
+      color: #10b981;
+    }
+
+    .mini-approve-btn mat-icon {
+      font-size: 18px;
+      width: 18px;
+      height: 18px;
+      line-height: 18px;
+    }
+
+    .mini-reject-btn {
+      width: 28px !important;
+      height: 28px !important;
+      color: #ef4444;
+    }
+
+    .mini-reject-btn mat-icon {
+      font-size: 18px;
+      width: 18px;
+      height: 18px;
+      line-height: 18px;
+    }
+
     .status-pill {
       display: inline-block;
       padding: 3px 10px;
@@ -684,8 +798,8 @@ import { ApiService } from '../../core/services/api.service';
 export class AdminComponent implements OnInit {
   users: any[] = [];
   loading = true;
-  columns = ['name', 'email', 'gender', 'status', 'swipeLimit', 'actions'];
-  stats = { total: 0, active: 0 };
+  columns = ['name', 'email', 'gender', 'approval', 'status', 'swipeLimit', 'actions'];
+  stats = { total: 0, active: 0, pending: 0 };
 
   settings: any = {
     matchingEnabled: false,
@@ -715,6 +829,7 @@ export class AdminComponent implements OnInit {
         this.users = users || [];
         this.stats.total = this.users.length;
         this.stats.active = this.users.filter(u => u.active).length;
+        this.stats.pending = this.users.filter(u => u.approvalStatus === 'PENDING' || !u.approvalStatus).length;
         this.loading = false;
       },
       error: () => {
@@ -792,6 +907,32 @@ export class AdminComponent implements OnInit {
     });
   }
 
+  approveUser(user: any) {
+    this.api.adminApproveUser(user.id).subscribe({
+      next: () => {
+        user.approvalStatus = 'APPROVED';
+        this.stats.pending = this.users.filter(u => u.approvalStatus === 'PENDING' || !u.approvalStatus).length;
+        this.snack.open(`${user.name} approved! Matching is now unlocked for them 🎉`, 'OK', { duration: 3000 });
+      },
+      error: () => {
+        this.snack.open('Failed to approve student', 'Dismiss', { duration: 2500 });
+      }
+    });
+  }
+
+  rejectUser(user: any) {
+    this.api.adminRejectUser(user.id).subscribe({
+      next: () => {
+        user.approvalStatus = 'REJECTED';
+        this.stats.pending = this.users.filter(u => u.approvalStatus === 'PENDING' || !u.approvalStatus).length;
+        this.snack.open(`${user.name} has been rejected from matching`, 'OK', { duration: 3000 });
+      },
+      error: () => {
+        this.snack.open('Failed to reject student', 'Dismiss', { duration: 2500 });
+      }
+    });
+  }
+
   toggleUser(user: any) {
     const obs = user.active ? this.api.adminDeactivate(user.id) : this.api.adminActivate(user.id);
     obs.subscribe({
@@ -810,6 +951,7 @@ export class AdminComponent implements OnInit {
         this.users = this.users.filter(u => u.id !== user.id);
         this.stats.total--;
         if (user.active) this.stats.active--;
+        this.stats.pending = this.users.filter(u => u.approvalStatus === 'PENDING' || !u.approvalStatus).length;
         this.snack.open('Student account deleted', '', { duration: 2500 });
       }
     });

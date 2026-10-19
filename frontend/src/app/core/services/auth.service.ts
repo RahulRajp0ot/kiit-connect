@@ -11,6 +11,7 @@ export interface AuthResponse {
   email: string;
   gender: string;
   role: string;
+  approvalStatus?: 'PENDING' | 'APPROVED' | 'REJECTED';
   profileComplete: boolean;
 }
 

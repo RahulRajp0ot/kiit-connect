@@ -22,5 +22,6 @@ public class UserDTO {
     private boolean active;
     private boolean profileComplete;
     private User.Role role;
+    private User.ApprovalStatus approvalStatus;
     private Integer customDailySwipeLimit;
 }

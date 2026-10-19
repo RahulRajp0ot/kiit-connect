@@ -106,6 +106,26 @@ import { COMMA, ENTER } from '@angular/cdk/keycodes';
           </mat-card-content>
         </mat-card>
       </div>
+
+      <!-- Danger Zone / Delete Account -->
+      <div class="danger-zone-card">
+        <div class="danger-content">
+          <div class="danger-icon-wrap">
+            <mat-icon>warning_amber</mat-icon>
+          </div>
+          <div class="danger-text">
+            <h3 class="danger-title">Delete Account</h3>
+            <p class="danger-desc">
+              Permanently remove your profile, photos, matches, and messages. This action cannot be undone.
+            </p>
+          </div>
+        </div>
+        <button mat-stroked-button class="delete-acc-btn" (click)="deleteMyAccount()" [disabled]="deleting">
+          <mat-spinner diameter="18" *ngIf="deleting"></mat-spinner>
+          <mat-icon *ngIf="!deleting">delete_forever</mat-icon>
+          <span>{{ deleting ? 'Deleting...' : 'Delete My Account' }}</span>
+        </button>
+      </div>
     </div>
   `,
   styles: [`
@@ -202,6 +222,71 @@ import { COMMA, ENTER } from '@angular/cdk/keycodes';
     }
     .no-interests { color: #bbb; font-size: 0.85rem; align-self: center; }
     .save-btn { width: 100%; margin-top: 16px; height: 48px; font-size: 1rem; background: linear-gradient(135deg, #ff6b9d, #c44dff) !important; }
+
+    .danger-zone-card {
+      margin-top: 32px;
+      background: #fff;
+      border: 1px solid #fee2e2;
+      border-radius: 18px;
+      padding: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+      box-shadow: 0 4px 16px rgba(239, 68, 68, 0.05);
+    }
+    @media (max-width: 600px) {
+      .danger-zone-card {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+      .delete-acc-btn {
+        width: 100%;
+      }
+    }
+    .danger-content {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    .danger-icon-wrap {
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      background: #fef2f2;
+      color: #ef4444;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .danger-title {
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: #991b1b;
+      margin: 0 0 4px 0;
+    }
+    .danger-desc {
+      font-size: 0.85rem;
+      color: #64748b;
+      margin: 0;
+      line-height: 1.4;
+    }
+    .delete-acc-btn {
+      color: #dc2626 !important;
+      border-color: #fca5a5 !important;
+      font-weight: 600 !important;
+      height: 44px !important;
+      border-radius: 12px !important;
+      white-space: nowrap;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .delete-acc-btn:hover:not(:disabled) {
+      background: #fef2f2 !important;
+      border-color: #ef4444 !important;
+    }
   `]
 })
 export class ProfileComponent implements OnInit {
@@ -284,6 +369,31 @@ export class ProfileComponent implements OnInit {
       error: () => {
         this.saving = false;
         this.snack.open('Save failed', '', { duration: 2000 });
+      }
+    });
+  }
+
+  deleting = false;
+
+  deleteMyAccount() {
+    const confirmed = confirm(
+      "⚠️ Are you sure you want to permanently delete your KIIT Dating account?\n\n" +
+      "• All your profile information & photos will be removed.\n" +
+      "• All your matches and conversation messages will be erased.\n" +
+      "• This action is permanent and cannot be reversed."
+    );
+
+    if (!confirmed) return;
+
+    this.deleting = true;
+    this.api.deleteMyAccount().subscribe({
+      next: () => {
+        this.snack.open('Your account has been deleted permanently.', 'OK', { duration: 4000 });
+        this.auth.logout();
+      },
+      error: () => {
+        this.deleting = false;
+        this.snack.open('Failed to delete account. Please try again.', 'Dismiss', { duration: 3000 });
       }
     });
   }

@@ -14,5 +14,6 @@ public class AuthResponse {
     private String email;
     private User.Gender gender;
     private User.Role role;
+    private User.ApprovalStatus approvalStatus;
     private boolean profileComplete;
 }

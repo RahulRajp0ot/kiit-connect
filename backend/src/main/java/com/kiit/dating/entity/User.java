@@ -60,6 +60,11 @@ public class User implements UserDetails {
     private boolean active = true;
     private boolean profileComplete = false;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    @Builder.Default
+    private ApprovalStatus approvalStatus = ApprovalStatus.PENDING;
+
     // Specific limit set by admin; if null, user follows global default
     private Integer customDailySwipeLimit;
 
@@ -96,4 +101,5 @@ public class User implements UserDetails {
 
     public enum Gender { MALE, FEMALE, OTHER }
     public enum Role { USER, ADMIN }
+    public enum ApprovalStatus { PENDING, APPROVED, REJECTED }
 }

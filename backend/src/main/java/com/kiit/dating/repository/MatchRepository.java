@@ -3,6 +3,7 @@ package com.kiit.dating.repository;
 import com.kiit.dating.entity.Match;
 import com.kiit.dating.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -21,4 +22,8 @@ public interface MatchRepository extends JpaRepository<Match, Long> {
 
     boolean existsByUserAAndUserB(User userA, User userB);
     boolean existsByUserAAndUserBOrUserBAndUserA(User userA, User userB, User userA2, User userB2);
+
+    @Modifying
+    @Query("DELETE FROM Match m WHERE m.userA.id = :userId OR m.userB.id = :userId")
+    void deleteAllByUserId(@Param("userId") Long userId);
 }

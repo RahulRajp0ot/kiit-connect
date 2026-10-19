@@ -50,9 +50,25 @@ public class AdminController {
         return ResponseEntity.noContent().build();
     }
 
+    @PutMapping("/users/{id}/approve")
+    public ResponseEntity<UserDTO> approveUser(@PathVariable Long id) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        user.setApprovalStatus(User.ApprovalStatus.APPROVED);
+        return ResponseEntity.ok(profileService.toDTO(userRepository.save(user)));
+    }
+
+    @PutMapping("/users/{id}/reject")
+    public ResponseEntity<UserDTO> rejectUser(@PathVariable Long id) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        user.setApprovalStatus(User.ApprovalStatus.REJECTED);
+        return ResponseEntity.ok(profileService.toDTO(userRepository.save(user)));
+    }
+
     @DeleteMapping("/users/{id}")
     public ResponseEntity<Void> deleteUser(@PathVariable Long id) {
-        userRepository.deleteById(id);
+        profileService.deleteMyAccount(id);
         return ResponseEntity.noContent().build();
     }
 

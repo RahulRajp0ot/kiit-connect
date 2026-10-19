@@ -33,14 +33,18 @@ public class DiscoveryService {
     private final AdminSettingsService adminSettingsService;
 
     public List<UserDTO> getDiscoverableUsers(Long currentUserId) {
+        User current = userRepository.findById(currentUserId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        if (current.getApprovalStatus() != User.ApprovalStatus.APPROVED) {
+            return Collections.emptyList();
+        }
+
         AppSettings settings = adminSettingsService.getSettings();
         if (!settings.isMatchingEnabled()) {
             // Matching is disabled by admin
             return Collections.emptyList();
         }
 
-        User current = userRepository.findById(currentUserId)
-                .orElseThrow(() -> new RuntimeException("User not found"));
         return userRepository.findDiscoverableUsers(currentUserId, current.getGender())
                 .stream()
                 .map(profileService::toDTO)
@@ -75,6 +79,8 @@ public class DiscoveryService {
         }
 
         Map<String, Object> status = new HashMap<>();
+        status.put("approvalStatus", user.getApprovalStatus() != null ? user.getApprovalStatus().name() : "PENDING");
+        status.put("isApproved", user.getApprovalStatus() == User.ApprovalStatus.APPROVED);
         status.put("matchingEnabled", settings.isMatchingEnabled());
         status.put("matchingDisabledMessage", settings.getMatchingDisabledMessage());
         status.put("maxLimit", userLimit);
@@ -89,6 +95,14 @@ public class DiscoveryService {
 
     @Transactional
     public Map<String, Object> swipeLike(Long fromUserId, Long toUserId) {
+        User fromUser = userRepository.findById(fromUserId).orElseThrow();
+        if (fromUser.getApprovalStatus() != User.ApprovalStatus.APPROVED) {
+            Map<String, Object> res = new HashMap<>();
+            res.put("status", "pending_review");
+            res.put("error", "Waiting for review. An admin must verify your profile before you can swipe.");
+            return res;
+        }
+
         AppSettings settings = adminSettingsService.getSettings();
         if (!settings.isMatchingEnabled()) {
             Map<String, Object> res = new HashMap<>();
@@ -97,7 +111,6 @@ public class DiscoveryService {
             return res;
         }
 
-        User fromUser = userRepository.findById(fromUserId).orElseThrow();
         User toUser = userRepository.findById(toUserId).orElseThrow();
         int userLimit = getUserDailySwipeLimit(fromUser);
 
@@ -147,6 +160,14 @@ public class DiscoveryService {
 
     @Transactional
     public Map<String, Object> swipeDislike(Long fromUserId, Long toUserId) {
+        User fromUser = userRepository.findById(fromUserId).orElseThrow();
+        if (fromUser.getApprovalStatus() != User.ApprovalStatus.APPROVED) {
+            Map<String, Object> res = new HashMap<>();
+            res.put("status", "pending_review");
+            res.put("error", "Waiting for review. An admin must verify your profile before you can swipe.");
+            return res;
+        }
+
         AppSettings settings = adminSettingsService.getSettings();
         if (!settings.isMatchingEnabled()) {
             Map<String, Object> res = new HashMap<>();
@@ -155,7 +176,6 @@ public class DiscoveryService {
             return res;
         }
 
-        User fromUser = userRepository.findById(fromUserId).orElseThrow();
         User toUser = userRepository.findById(toUserId).orElseThrow();
         int userLimit = getUserDailySwipeLimit(fromUser);
 
