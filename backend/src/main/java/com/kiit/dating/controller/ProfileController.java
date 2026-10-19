@@ -63,4 +63,9 @@ public class ProfileController {
     public ResponseEntity<UserDTO> getUserProfile(@PathVariable Long id) {
         return ResponseEntity.ok(profileService.getProfile(id));
     }
+
+    @PostMapping("/me/appeal")
+    public ResponseEntity<UserDTO> appealReview(@AuthenticationPrincipal User user) {
+        return ResponseEntity.ok(profileService.appealReview(user.getId()));
+    }
 }

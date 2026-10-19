@@ -12,7 +12,9 @@ import com.kiit.dating.service.AdminSettingsService;
 import com.kiit.dating.service.ProfileService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -22,7 +24,7 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/admin")
-@PreAuthorize("hasRole('ADMIN')")
+@PreAuthorize("hasAnyRole('ADMIN', 'MODERATOR')")
 @RequiredArgsConstructor
 public class AdminController {
 
@@ -66,10 +68,17 @@ public class AdminController {
     }
 
     @PutMapping("/users/{id}/reject")
-    public ResponseEntity<UserDTO> rejectUser(@PathVariable Long id) {
+    public ResponseEntity<UserDTO> rejectUser(
+            @PathVariable Long id,
+            @RequestBody(required = false) Map<String, String> body) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("User not found"));
         user.setApprovalStatus(User.ApprovalStatus.REJECTED);
+        String reason = body != null ? body.get("reason") : null;
+        if (reason == null || reason.isBlank()) {
+            reason = "Profile details or photo do not meet campus verification guidelines. Please update your profile.";
+        }
+        user.setRejectionReason(reason.trim());
         return ResponseEntity.ok(profileService.toDTO(userRepository.save(user)));
     }
 
@@ -79,9 +88,27 @@ public class AdminController {
     }
 
     @DeleteMapping("/users/{id}")
-    public ResponseEntity<Void> deleteUser(@PathVariable Long id) {
+    public ResponseEntity<Void> deleteUser(@PathVariable Long id, @AuthenticationPrincipal User currentOperator) {
+        User target = userRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        // A Moderator cannot delete an Admin account
+        if (target.getRole() == User.Role.ADMIN && currentOperator.getRole() != User.Role.ADMIN) {
+            throw new AccessDeniedException("Moderators cannot delete administrator accounts!");
+        }
         profileService.deleteMyAccount(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @PutMapping("/users/{id}/role")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<UserDTO> updateUserRole(@PathVariable Long id, @RequestBody Map<String, String> body) {
+        User target = userRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        String roleStr = body.get("role");
+        if (roleStr != null) {
+            target.setRole(User.Role.valueOf(roleStr.trim().toUpperCase()));
+        }
+        return ResponseEntity.ok(profileService.toDTO(userRepository.save(target)));
     }
 
     @GetMapping("/users/{id}")

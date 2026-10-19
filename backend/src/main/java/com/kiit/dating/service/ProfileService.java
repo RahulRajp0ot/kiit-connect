@@ -191,6 +191,7 @@ public class ProfileService {
                 .profileComplete(user.isProfileComplete())
                 .role(user.getRole())
                 .approvalStatus(user.getApprovalStatus())
+                .rejectionReason(user.getRejectionReason())
                 .deletionRequested(user.isDeletionRequested())
                 .deletionRequestedAt(user.getDeletionRequestedAt())
                 .customDailySwipeLimit(user.getCustomDailySwipeLimit())
@@ -199,5 +200,12 @@ public class ProfileService {
                 .speedChatsUsedToday(speedChatsUsed)
                 .speedChatLimit(effectiveSpeedLimit)
                 .build();
+    }
+
+    public UserDTO appealReview(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        user.setApprovalStatus(User.ApprovalStatus.PENDING);
+        return toDTO(userRepository.save(user));
     }
 }

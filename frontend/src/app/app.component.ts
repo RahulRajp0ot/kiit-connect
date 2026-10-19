@@ -34,6 +34,10 @@ import { AuthService } from './core/services/auth.service';
             <mat-icon class="nav-icon">explore</mat-icon>
             <span class="nav-text">Discover</span>
           </a>
+          <a routerLink="/feed" routerLinkActive="active" class="nav-item">
+            <mat-icon class="nav-icon">dynamic_feed</mat-icon>
+            <span class="nav-text">Campus Feed</span>
+          </a>
           <a routerLink="/speed-chat" routerLinkActive="active" class="nav-item speed-chat-nav">
             <mat-icon class="nav-icon">bolt</mat-icon>
             <span class="nav-text">Speed Connect</span>

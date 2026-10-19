@@ -35,7 +35,12 @@ import { trigger, state, style, animate, transition } from '@angular/animations'
           <p class="header-subtitle">Find your match on KIIT campus 💕</p>
 
           <!-- Status Indicator Badge -->
-          <div class="limit-pill pending-pill" *ngIf="!loading && !limitStatus.isApproved">
+          <div class="limit-pill rejected-pill" *ngIf="!loading && !limitStatus.isApproved && limitStatus.approvalStatus === 'REJECTED'">
+            <mat-icon class="limit-icon">cancel</mat-icon>
+            <span>Needs Changes</span>
+          </div>
+
+          <div class="limit-pill pending-pill" *ngIf="!loading && !limitStatus.isApproved && limitStatus.approvalStatus !== 'REJECTED'">
             <mat-icon class="limit-icon">hourglass_top</mat-icon>
             <span>Waiting for Review</span>
           </div>
@@ -64,8 +69,44 @@ import { trigger, state, style, animate, transition } from '@angular/animations'
           <p class="state-text">Loading campus profiles...</p>
         </div>
 
-        <!-- 2. WAITING FOR REVIEW CARD -->
-        <div class="state-card review-card" *ngIf="!loading && !limitStatus.isApproved">
+        <!-- 2A. REJECTED PROFILE CARD WITH REASON & APPEAL -->
+        <div class="state-card review-card rejected-card" *ngIf="!loading && !limitStatus.isApproved && limitStatus.approvalStatus === 'REJECTED'">
+          <div class="review-icon-wrap rejected-icon-wrap">
+            <mat-icon class="huge-icon rejected-icon">cancel</mat-icon>
+          </div>
+          <div class="status-badge-chip rejected-badge">
+            <mat-icon class="badge-icon">report_problem</mat-icon>
+            <span>Profile Needs Update</span>
+          </div>
+
+          <h2 class="empty-title">Profile Rejected by Admin</h2>
+
+          <div class="announcement-quote-box rejection-reason-box">
+            <mat-icon class="quote-mark">rate_review</mat-icon>
+            <div class="reason-content">
+              <span class="reason-label">Reason from Admin:</span>
+              <p class="quote-text">{{ limitStatus.rejectionReason || 'Your profile details or photo do not meet campus community verification guidelines. Please update your profile.' }}</p>
+            </div>
+          </div>
+
+          <p class="empty-desc">
+            Please update your profile photo and info, then click <strong>"Appeal for Review Again"</strong> below so admin can re-review and approve your account!
+          </p>
+
+          <div class="limit-actions-row">
+            <button mat-raised-button class="appeal-btn" (click)="appealReview()" [disabled]="appealing">
+              <mat-icon>send</mat-icon>
+              <span>{{ appealing ? 'Submitting Appeal...' : 'Appeal for Review Again 🚀' }}</span>
+            </button>
+            <button mat-stroked-button routerLink="/profile" class="profile-link-btn">
+              <mat-icon>edit</mat-icon>
+              <span>Update Profile</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- 2B. WAITING FOR REVIEW (PENDING) CARD -->
+        <div class="state-card review-card" *ngIf="!loading && !limitStatus.isApproved && limitStatus.approvalStatus !== 'REJECTED'">
           <div class="review-icon-wrap">
             <mat-icon class="huge-icon review-icon">hourglass_top</mat-icon>
           </div>
@@ -340,9 +381,20 @@ import { trigger, state, style, animate, transition } from '@angular/animations'
       border-color: #fde68a;
     }
 
+    .limit-pill.rejected-pill {
+      background: #fef2f2;
+      color: #dc2626;
+      border-color: #fecaca;
+    }
+
     .review-card {
       background: linear-gradient(180deg, #ffffff 0%, #fffdf5 100%);
       border: 2px solid #fde68a;
+    }
+
+    .rejected-card {
+      background: linear-gradient(180deg, #ffffff 0%, #fef2f2 100%);
+      border: 2px solid #fecaca;
     }
 
     .review-icon-wrap {
@@ -356,6 +408,10 @@ import { trigger, state, style, animate, transition } from '@angular/animations'
       margin-bottom: 16px;
     }
 
+    .rejected-icon-wrap {
+      background: #fee2e2;
+    }
+
     .huge-icon.review-icon {
       font-size: 44px;
       width: 44px;
@@ -363,9 +419,56 @@ import { trigger, state, style, animate, transition } from '@angular/animations'
       color: #d97706;
     }
 
+    .huge-icon.rejected-icon {
+      font-size: 44px;
+      width: 44px;
+      height: 44px;
+      color: #ef4444;
+    }
+
     .review-badge {
       background: #fef3c7;
       color: #b45309;
+    }
+
+    .rejected-badge {
+      background: #fee2e2;
+      color: #b91c1c;
+    }
+
+    .rejection-reason-box {
+      border-left: 4px solid #ef4444 !important;
+      background: white;
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+    }
+
+    .reason-content {
+      flex: 1;
+    }
+
+    .reason-label {
+      display: block;
+      font-size: 0.75rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      color: #dc2626;
+      margin-bottom: 4px;
+      letter-spacing: 0.5px;
+    }
+
+    .appeal-btn {
+      background: linear-gradient(135deg, #ef4444, #f43f5e) !important;
+      color: white !important;
+      height: 48px !important;
+      border-radius: 14px !important;
+      font-weight: 700 !important;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      box-shadow: 0 4px 14px rgba(239, 68, 68, 0.35);
     }
 
     .review-box {
@@ -865,11 +968,13 @@ export class DiscoverComponent implements OnInit {
   cardState: 'center' | 'liked' | 'disliked' = 'center';
   showMatch = false;
   matchedName = '';
+  appealing = false;
 
-  limitStatus = {
+  limitStatus: any = {
     matchingEnabled: false,
     matchingDisabledMessage: '',
     approvalStatus: 'APPROVED',
+    rejectionReason: '',
     isApproved: true,
     maxLimit: 5,
     defaultLimit: 5,
@@ -1013,5 +1118,21 @@ export class DiscoverComponent implements OnInit {
         }
       });
     }, 320);
+  }
+
+  appealReview() {
+    this.appealing = true;
+    this.api.appealReview().subscribe({
+      next: (res: any) => {
+        this.appealing = false;
+        this.snack.open(res?.message || 'Appeal submitted! Your profile is sent back for admin review.', 'OK', { duration: 5000 });
+        this.loadAll();
+      },
+      error: (err: any) => {
+        this.appealing = false;
+        const msg = err.error?.error || err.error?.message || 'Failed to submit appeal. Please try again.';
+        this.snack.open(msg, 'OK', { duration: 4000 });
+      }
+    });
   }
 }

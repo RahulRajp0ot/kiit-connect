@@ -22,6 +22,11 @@ export const routes: Routes = [
     canActivate: [authGuard]
   },
   {
+    path: 'feed',
+    loadComponent: () => import('./pages/feed/feed.component').then(m => m.FeedComponent),
+    canActivate: [authGuard]
+  },
+  {
     path: 'matches',
     loadComponent: () => import('./pages/matches/matches.component').then(m => m.MatchesComponent),
     canActivate: [authGuard]

@@ -84,6 +84,10 @@ export class ApiService {
     return this.http.get<any[]>(`${this.base}/chat/${matchId}`);
   }
 
+  appealReview(): Observable<any> {
+    return this.http.post<any>(`${this.base}/profile/me/appeal`, {});
+  }
+
   // ── Admin ─────────────────────────────────────────────
   adminGetUsers(): Observable<any[]> {
     return this.http.get<any[]>(`${this.base}/admin/users`);
@@ -100,8 +104,11 @@ export class ApiService {
   adminApproveUser(id: number): Observable<any> {
     return this.http.put(`${this.base}/admin/users/${id}/approve`, {});
   }
-  adminRejectUser(id: number): Observable<any> {
-    return this.http.put(`${this.base}/admin/users/${id}/reject`, {});
+  adminRejectUser(id: number, reason?: string): Observable<any> {
+    return this.http.put(`${this.base}/admin/users/${id}/reject`, { reason });
+  }
+  adminSetUserRole(id: number, role: string): Observable<any> {
+    return this.http.put(`${this.base}/admin/users/${id}/role`, { role });
   }
   adminRejectDeletion(id: number): Observable<any> {
     return this.http.put(`${this.base}/admin/users/${id}/reject-deletion`, {});
@@ -175,5 +182,24 @@ export class ApiService {
   }
   adminUpdateDefaultSpeedLimit(limit: number): Observable<any> {
     return this.http.put(`${this.base}/admin/settings/speed-chat-limit`, { limit });
+  }
+
+  // ── Campus Feed / Posts (Photo with Quotes) ────────────
+  getPosts(): Observable<any[]> {
+    return this.http.get<any[]>(`${this.base}/posts`);
+  }
+  createPost(quote: string, file?: File): Observable<any> {
+    const formData = new FormData();
+    formData.append('quote', quote);
+    if (file) {
+      formData.append('file', file);
+    }
+    return this.http.post<any>(`${this.base}/posts`, formData);
+  }
+  togglePostLike(id: number): Observable<any> {
+    return this.http.post<any>(`${this.base}/posts/${id}/like`, {});
+  }
+  deletePost(id: number): Observable<void> {
+    return this.http.delete<void>(`${this.base}/posts/${id}`);
   }
 }

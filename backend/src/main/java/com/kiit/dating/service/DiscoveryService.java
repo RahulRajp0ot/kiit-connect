@@ -90,6 +90,7 @@ public class DiscoveryService {
         status.put("swipesRemaining", remaining);
         status.put("limitReached", limitReached);
         status.put("resetInMinutes", resetInMinutes);
+        status.put("rejectionReason", user.getRejectionReason());
         return status;
     }
 

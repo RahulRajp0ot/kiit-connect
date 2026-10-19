@@ -12,6 +12,7 @@ import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatInputModule } from '@angular/material/input';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { ApiService } from '../../core/services/api.service';
+import { AuthService } from '../../core/services/auth.service';
 
 @Component({
   selector: 'app-admin',
@@ -230,6 +231,30 @@ import { ApiService } from '../../core/services/api.service';
                 </td>
               </ng-container>
 
+              <!-- Role Column -->
+              <ng-container matColumnDef="role">
+                <th mat-header-cell *matHeaderCellDef>Role</th>
+                <td mat-cell *matCellDef="let u">
+                  <div class="role-cell">
+                    <span class="role-pill"
+                          [class.role-admin]="u.role === 'ADMIN'"
+                          [class.role-mod]="u.role === 'MODERATOR'"
+                          [class.role-user]="u.role === 'USER' || !u.role">
+                      <mat-icon class="pill-mini-icon">
+                        {{ u.role === 'ADMIN' ? 'admin_panel_settings' : (u.role === 'MODERATOR' ? 'shield' : 'person') }}
+                      </mat-icon>
+                      {{ u.role === 'ADMIN' ? 'Admin' : (u.role === 'MODERATOR' ? 'Moderator' : 'Student') }}
+                    </span>
+                    <button mat-icon-button *ngIf="auth.isSuperAdmin() && u.role !== 'ADMIN'"
+                            class="role-toggle-btn"
+                            [title]="u.role === 'MODERATOR' ? 'Demote to regular Student' : 'Promote to Moderator'"
+                            (click)="toggleModeratorRole(u)">
+                      <mat-icon>{{ u.role === 'MODERATOR' ? 'remove_moderator' : 'add_moderator' }}</mat-icon>
+                    </button>
+                  </div>
+                </td>
+              </ng-container>
+
               <!-- Gender Column -->
               <ng-container matColumnDef="gender">
                 <th mat-header-cell *matHeaderCellDef>Gender</th>
@@ -319,8 +344,13 @@ import { ApiService } from '../../core/services/api.service';
                     <!-- Deletion Requested Action Group -->
                     <div class="deletion-action-box" *ngIf="u.deletionRequested">
                       <span class="del-req-tag">Delete Requested</span>
-                      <button mat-icon-button class="del-approve-btn" (click)="approveDeletion(u)" title="Approve & Permanently Delete Account">
+                      <button mat-icon-button class="del-approve-btn" (click)="approveDeletion(u)" title="Approve & Permanently Delete Account"
+                              *ngIf="canDeleteUser(u)">
                         <mat-icon>delete_forever</mat-icon>
+                      </button>
+                      <button mat-icon-button disabled class="del-approve-btn disabled-btn" title="Moderators cannot delete Administrators"
+                              *ngIf="!canDeleteUser(u)">
+                        <mat-icon>lock</mat-icon>
                       </button>
                       <button mat-icon-button class="del-reject-btn" (click)="rejectDeletion(u)" title="Reject Deletion Request (Keep Active)">
                         <mat-icon>cancel</mat-icon>
@@ -339,8 +369,13 @@ import { ApiService } from '../../core/services/api.service';
                           {{ u.active ? 'block' : 'check_circle' }}
                         </mat-icon>
                       </button>
-                      <button mat-icon-button title="Delete Account" (click)="deleteUser(u)" class="del-btn">
+                      <button mat-icon-button title="Delete Account" (click)="deleteUser(u)" class="del-btn"
+                              *ngIf="canDeleteUser(u)">
                         <mat-icon>delete_outline</mat-icon>
+                      </button>
+                      <button mat-icon-button disabled title="Moderators cannot delete Administrators" class="del-btn disabled-btn"
+                              *ngIf="!canDeleteUser(u)">
+                        <mat-icon>lock</mat-icon>
                       </button>
                     </ng-container>
                   </div>
@@ -914,6 +949,59 @@ import { ApiService } from '../../core/services/api.service';
     .cell-email {
       font-size: 0.88rem;
       color: #334155;
+    }
+
+    .role-cell {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .role-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 10px;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.3px;
+    }
+
+    .role-pill.role-admin {
+      background: #fef3c7;
+      color: #b45309;
+      border: 1px solid #fde68a;
+    }
+
+    .role-pill.role-mod {
+      background: #ede9fe;
+      color: #6d28d9;
+      border: 1px solid #ddd6fe;
+    }
+
+    .role-pill.role-user {
+      background: #f1f5f9;
+      color: #475569;
+      border: 1px solid #e2e8f0;
+    }
+
+    .role-toggle-btn {
+      width: 28px !important;
+      height: 28px !important;
+      line-height: 28px !important;
+      color: #7c3aed !important;
+    }
+
+    .role-toggle-btn mat-icon {
+      font-size: 18px !important;
+      width: 18px !important;
+      height: 18px !important;
+    }
+
+    .disabled-btn {
+      opacity: 0.45 !important;
+      cursor: not-allowed !important;
     }
 
     .gender-pill {
@@ -1562,7 +1650,7 @@ import { ApiService } from '../../core/services/api.service';
 export class AdminComponent implements OnInit {
   users: any[] = [];
   loading = true;
-  columns = ['name', 'email', 'gender', 'approval', 'status', 'swipeLimit', 'speedLimit', 'actions'];
+  columns = ['name', 'email', 'role', 'gender', 'approval', 'status', 'swipeLimit', 'speedLimit', 'actions'];
   stats = { total: 0, active: 0, pending: 0, deletionRequests: 0 };
 
   settings: any = {
@@ -1589,7 +1677,7 @@ export class AdminComponent implements OnInit {
   transcriptMessages: any[] = [];
   loadingTranscript = false;
 
-  constructor(private api: ApiService, private snack: MatSnackBar) {}
+  constructor(private api: ApiService, public auth: AuthService, private snack: MatSnackBar) {}
 
   ngOnInit() {
     this.loadAllData();
@@ -1734,12 +1822,45 @@ export class AdminComponent implements OnInit {
     });
   }
 
+  canDeleteUser(u: any): boolean {
+    if (this.auth.isSuperAdmin()) return true;
+    if (this.auth.isModerator() && u.role === 'ADMIN') return false;
+    return true;
+  }
+
+  toggleModeratorRole(user: any) {
+    if (!this.auth.isSuperAdmin()) {
+      this.snack.open('Only Administrators can assign moderator roles', 'Dismiss', { duration: 3000 });
+      return;
+    }
+    const newRole = user.role === 'MODERATOR' ? 'USER' : 'MODERATOR';
+    const actionName = newRole === 'MODERATOR' ? 'promote to Moderator' : 'demote to regular Student';
+    if (!confirm(`Are you sure you want to ${actionName} for ${user.name}?`)) return;
+
+    this.api.adminSetUserRole(user.id, newRole).subscribe({
+      next: (res: any) => {
+        user.role = res.role || newRole;
+        this.snack.open(`${user.name} is now ${user.role}!`, 'OK', { duration: 3000 });
+      },
+      error: (err: any) => {
+        this.snack.open(err.error?.error || 'Failed to update user role', 'Dismiss', { duration: 3000 });
+      }
+    });
+  }
+
   rejectUser(user: any) {
-    this.api.adminRejectUser(user.id).subscribe({
+    const reason = prompt(
+      `Enter reason for rejecting ${user.name}'s profile:\n(This note will be shown to the student so they can update their profile and appeal)`,
+      'Please upload a clear campus photo and complete your bio details.'
+    );
+    if (reason === null) return; // User cancelled
+
+    this.api.adminRejectUser(user.id, reason.trim()).subscribe({
       next: () => {
         user.approvalStatus = 'REJECTED';
+        user.rejectionReason = reason.trim();
         this.stats.pending = this.users.filter(u => u.approvalStatus === 'PENDING' || !u.approvalStatus).length;
-        this.snack.open(`${user.name} has been rejected from matching`, 'OK', { duration: 3000 });
+        this.snack.open(`${user.name}'s profile rejected with feedback note.`, 'OK', { duration: 3500 });
       },
       error: () => {
         this.snack.open('Failed to reject student', 'Dismiss', { duration: 2500 });
@@ -1759,6 +1880,10 @@ export class AdminComponent implements OnInit {
   }
 
   deleteUser(user: any) {
+    if (!this.canDeleteUser(user)) {
+      this.snack.open('Moderators cannot delete Administrator accounts', 'Dismiss', { duration: 3000 });
+      return;
+    }
     if (!confirm(`Delete ${user.name}'s account? This action cannot be undone.`)) return;
     this.api.adminDelete(user.id).subscribe({
       next: () => {
@@ -1768,11 +1893,18 @@ export class AdminComponent implements OnInit {
         this.stats.pending = this.users.filter(u => u.approvalStatus === 'PENDING' || !u.approvalStatus).length;
         this.stats.deletionRequests = this.users.filter(u => u.deletionRequested).length;
         this.snack.open('Student account deleted', '', { duration: 2500 });
+      },
+      error: (err: any) => {
+        this.snack.open(err.error?.error || 'Failed to delete user', 'Dismiss', { duration: 3000 });
       }
     });
   }
 
   approveDeletion(user: any) {
+    if (!this.canDeleteUser(user)) {
+      this.snack.open('Moderators cannot delete Administrator accounts', 'Dismiss', { duration: 3000 });
+      return;
+    }
     if (!confirm(`Are you sure you want to approve deletion for ${user.name}? This will permanently wipe all their photos, matches, and chats.`)) return;
     this.api.adminDelete(user.id).subscribe({
       next: () => {

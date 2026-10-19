@@ -23,6 +23,7 @@ public class UserDTO {
     private boolean profileComplete;
     private User.Role role;
     private User.ApprovalStatus approvalStatus;
+    private String rejectionReason;
     private boolean deletionRequested;
     private java.time.LocalDateTime deletionRequestedAt;
     private Integer customDailySwipeLimit;

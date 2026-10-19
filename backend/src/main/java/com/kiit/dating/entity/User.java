@@ -65,6 +65,9 @@ public class User implements UserDetails {
     @Builder.Default
     private ApprovalStatus approvalStatus = ApprovalStatus.PENDING;
 
+    @Column(length = 1000)
+    private String rejectionReason;
+
     @Builder.Default
     private boolean deletionRequested = false;
 
@@ -108,6 +111,6 @@ public class User implements UserDetails {
     public boolean isEnabled() { return active; }
 
     public enum Gender { MALE, FEMALE, OTHER }
-    public enum Role { USER, ADMIN }
+    public enum Role { USER, ADMIN, MODERATOR }
     public enum ApprovalStatus { PENDING, APPROVED, REJECTED }
 }

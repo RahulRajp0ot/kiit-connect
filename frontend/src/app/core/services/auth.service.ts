@@ -12,6 +12,9 @@ export interface AuthResponse {
   gender: string;
   role: string;
   approvalStatus?: 'PENDING' | 'APPROVED' | 'REJECTED';
+  rejectionReason?: string;
+  photoUrl?: string;
+  photos?: string[];
   profileComplete: boolean;
 }
 
@@ -63,7 +66,16 @@ export class AuthService {
   }
 
   isAdmin(): boolean {
+    const role = this.getCurrentUser()?.role;
+    return role === 'ADMIN' || role === 'MODERATOR';
+  }
+
+  isSuperAdmin(): boolean {
     return this.getCurrentUser()?.role === 'ADMIN';
+  }
+
+  isModerator(): boolean {
+    return this.getCurrentUser()?.role === 'MODERATOR';
   }
 
   private setSession(auth: AuthResponse): void {

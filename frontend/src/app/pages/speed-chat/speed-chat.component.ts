@@ -136,7 +136,7 @@ import { environment } from '../../../environments/environment';
         <div class="partner-left-banner admin-terminated-banner" *ngIf="partnerDisconnected && adminTerminated">
           <div class="banner-text-wrap">
             <mat-icon>gavel</mat-icon>
-            <span><strong>Chat Ended by Admin:</strong> An administrator has broken this ongoing conversation.</span>
+            <span><strong>Chat Ended due to Tech issue:</strong> Connect An administrator if this happening multiple times.</span>
           </div>
           <button mat-flat-button class="find-new-btn admin-new-btn" (click)="resetToLobby()">
             Back to Lobby
