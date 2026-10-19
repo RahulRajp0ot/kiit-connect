@@ -21,8 +21,8 @@ import { AuthService } from '../../core/services/auth.service';
       <div class="auth-container">
         <div class="auth-header">
           <div class="heart-icon">💕</div>
-          <h1>KIIT Connect</h1>
-          <p>Find your match at KIIT University</p>
+          <h1>KIIT Dating</h1>
+          <p>Find your match on KIIT campus 💕</p>
         </div>
         <mat-card class="auth-card">
           <mat-card-title>Welcome Back</mat-card-title>

@@ -53,7 +53,7 @@ import { ApiService } from '../../core/services/api.service';
               <th mat-header-cell *matHeaderCellDef>Name</th>
               <td mat-cell *matCellDef="let u">
                 <div class="user-cell">
-                  <img [src]="u.photos?.[0] || getAvatar(u.name)" class="user-thumb">
+                  <img [src]="u.photoUrls?.[0] || u.photos?.[0] || getAvatar(u.name)" class="user-thumb">
                   <span>{{u.name}}</span>
                 </div>
               </td>

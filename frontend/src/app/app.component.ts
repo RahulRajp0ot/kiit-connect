@@ -15,89 +15,254 @@ import { AuthService } from './core/services/auth.service';
     MatToolbarModule, MatButtonModule, MatIconModule, MatMenuModule
   ],
   template: `
-    <mat-toolbar class="app-toolbar" *ngIf="auth.isLoggedIn()">
-      <a routerLink="/discover" class="logo-link">
-        <mat-icon class="logo-icon">favorite</mat-icon>
-        <span class="logo-text">KIIT<span class="logo-accent">Love</span></span>
-      </a>
-
-      <span class="spacer"></span>
-
-      <nav class="nav-links">
-        <a mat-button routerLink="/discover" routerLinkActive="active-link">
-          <mat-icon>explore</mat-icon>
-          <span class="nav-label">Discover</span>
+    <header class="navbar-wrapper" *ngIf="auth.isLoggedIn()">
+      <div class="navbar-container">
+        <!-- Logo -->
+        <a routerLink="/discover" class="brand-logo">
+          <div class="heart-badge">
+            <mat-icon class="brand-icon">favorite</mat-icon>
+          </div>
+          <span class="brand-name">KIIT<span class="brand-accent">Dating</span></span>
         </a>
-        <a mat-button routerLink="/matches" routerLinkActive="active-link">
-          <mat-icon>favorite_border</mat-icon>
-          <span class="nav-label">Matches</span>
-        </a>
-        <a mat-button routerLink="/profile" routerLinkActive="active-link">
-          <mat-icon>person</mat-icon>
-          <span class="nav-label">Profile</span>
-        </a>
-        <a mat-button routerLink="/admin" routerLinkActive="active-link" *ngIf="auth.isAdmin()">
-          <mat-icon>shield</mat-icon>
-          <span class="nav-label">Admin</span>
-        </a>
-      </nav>
 
-      <button mat-icon-button [matMenuTriggerFor]="userMenu" class="user-menu-btn">
-        <mat-icon>account_circle</mat-icon>
-      </button>
-      <mat-menu #userMenu="matMenu">
-        <button mat-menu-item routerLink="/profile">
-          <mat-icon>person</mat-icon> My Profile
-        </button>
-        <button mat-menu-item (click)="auth.logout()">
-          <mat-icon>logout</mat-icon> Sign Out
-        </button>
-      </mat-menu>
-    </mat-toolbar>
+        <!-- Center Nav Links -->
+        <nav class="nav-menu">
+          <a routerLink="/discover" routerLinkActive="active" class="nav-item">
+            <mat-icon class="nav-icon">explore</mat-icon>
+            <span class="nav-text">Discover</span>
+          </a>
+          <a routerLink="/matches" routerLinkActive="active" class="nav-item">
+            <mat-icon class="nav-icon">favorite_border</mat-icon>
+            <span class="nav-text">Matches</span>
+          </a>
+          <a routerLink="/profile" routerLinkActive="active" class="nav-item">
+            <mat-icon class="nav-icon">person</mat-icon>
+            <span class="nav-text">Profile</span>
+          </a>
+          <a routerLink="/admin" routerLinkActive="active" class="nav-item admin-item" *ngIf="auth.isAdmin()">
+            <mat-icon class="nav-icon">shield</mat-icon>
+            <span class="nav-text">Admin</span>
+          </a>
+        </nav>
 
-    <main class="main-content">
+        <!-- Right User Actions -->
+        <div class="user-actions">
+          <button mat-icon-button [matMenuTriggerFor]="userMenu" class="avatar-btn" aria-label="Account menu">
+            <mat-icon class="avatar-icon">account_circle</mat-icon>
+          </button>
+          <mat-menu #userMenu="matMenu" xPosition="before" class="custom-menu">
+            <div class="menu-user-info" *ngIf="auth.getCurrentUser() as user">
+              <span class="user-name">{{ user.name }}</span>
+              <span class="user-email">{{ user.email }}</span>
+            </div>
+            <button mat-menu-item routerLink="/profile">
+              <mat-icon>edit</mat-icon>
+              <span>Edit Profile</span>
+            </button>
+            <button mat-menu-item (click)="auth.logout()" class="logout-btn">
+              <mat-icon>logout</mat-icon>
+              <span>Sign Out</span>
+            </button>
+          </mat-menu>
+        </div>
+      </div>
+    </header>
+
+    <main class="page-viewport" [class.authenticated]="auth.isLoggedIn()">
       <router-outlet></router-outlet>
     </main>
   `,
   styles: [`
-    .app-toolbar {
-      background: white !important;
-      color: #1a1a2e !important;
-      box-shadow: 0 2px 12px rgba(0,0,0,0.08);
-      padding: 0 16px;
+    .navbar-wrapper {
       position: sticky;
       top: 0;
-      z-index: 100;
-      height: 64px;
+      z-index: 1000;
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-bottom: 1px solid rgba(226, 232, 240, 0.8);
+      box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.05);
     }
-    .logo-link {
+
+    .navbar-container {
+      max-width: 1100px;
+      margin: 0 auto;
+      height: 68px;
+      padding: 0 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    /* Brand Logo */
+    .brand-logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+      color: inherit;
+      cursor: pointer;
+    }
+
+    .heart-badge {
+      width: 38px;
+      height: 38px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, #ff4b72, #c026d3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 14px rgba(255, 75, 114, 0.4);
+    }
+
+    .brand-icon {
+      color: white;
+      font-size: 22px;
+      width: 22px;
+      height: 22px;
+      line-height: 22px;
+    }
+
+    .brand-name {
+      font-size: 1.35rem;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      color: #0f172a;
+    }
+
+    .brand-accent {
+      background: linear-gradient(135deg, #ff4b72, #c026d3);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-left: 2px;
+    }
+
+    /* Nav Links */
+    .nav-menu {
       display: flex;
       align-items: center;
       gap: 8px;
-      text-decoration: none;
-      color: inherit;
+      background: #f1f5f9;
+      padding: 5px 6px;
+      border-radius: 9999px;
     }
-    .logo-icon { color: #ff6b9d; font-size: 28px; height: 28px; width: 28px; }
-    .logo-text { font-size: 1.3rem; font-weight: 800; color: #1a1a2e; }
-    .logo-accent { color: #ff6b9d; }
-    .spacer { flex: 1; }
-    .nav-links { display: flex; gap: 4px; }
-    .nav-links a {
+
+    .nav-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 18px;
+      border-radius: 9999px;
+      color: #64748b;
+      font-size: 0.9rem;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .nav-icon {
+      font-size: 20px;
+      width: 20px;
+      height: 20px;
+      line-height: 20px;
+    }
+
+    .nav-text {
+      line-height: 1;
+    }
+
+    .nav-item:hover {
+      color: #0f172a;
+      background: rgba(255, 255, 255, 0.6);
+    }
+
+    .nav-item.active {
+      color: white;
+      background: linear-gradient(135deg, #ff4b72, #c026d3);
+      box-shadow: 0 4px 12px rgba(255, 75, 114, 0.35);
+    }
+
+    .nav-item.admin-item.active {
+      background: linear-gradient(135deg, #4f46e5, #06b6d4);
+      box-shadow: 0 4px 12px rgba(79, 70, 229, 0.35);
+    }
+
+    /* User Avatar */
+    .user-actions {
       display: flex;
       align-items: center;
-      gap: 4px;
-      border-radius: 10px;
-      color: #666;
-      font-weight: 500;
-      font-size: 0.85rem;
     }
-    .nav-links a.active-link { color: #ff6b9d; background: rgba(255,107,157,0.08); }
-    .nav-label { font-size: 0.82rem; }
-    .user-menu-btn { color: #666; margin-left: 8px; }
-    .main-content { padding-top: 0; }
-    @media (max-width: 600px) {
-      .nav-label { display: none; }
-      .nav-links a { min-width: 0; padding: 0 8px; }
+
+    .avatar-btn {
+      color: #64748b;
+      transition: transform 0.2s, color 0.2s;
+    }
+
+    .avatar-btn:hover {
+      color: #ff4b72;
+      transform: scale(1.08);
+    }
+
+    .avatar-icon {
+      font-size: 32px;
+      width: 32px;
+      height: 32px;
+      line-height: 32px;
+    }
+
+    .menu-user-info {
+      padding: 12px 16px;
+      border-bottom: 1px solid #f1f5f9;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .user-name {
+      font-weight: 700;
+      color: #0f172a;
+      font-size: 0.95rem;
+    }
+
+    .user-email {
+      color: #64748b;
+      font-size: 0.8rem;
+    }
+
+    .page-viewport {
+      min-height: 100vh;
+    }
+
+    .page-viewport.authenticated {
+      min-height: calc(100vh - 68px);
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .navbar-container {
+        padding: 0 12px;
+      }
+
+      .nav-menu {
+        position: fixed;
+        bottom: 16px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 999;
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(20px);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+        padding: 6px 10px;
+        gap: 6px;
+      }
+
+      .nav-text {
+        display: none;
+      }
+
+      .nav-item {
+        padding: 10px 14px;
+      }
     }
   `]
 })

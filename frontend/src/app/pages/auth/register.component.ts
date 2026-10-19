@@ -26,11 +26,11 @@ import { AuthService } from '../../core/services/auth.service';
       <div class="auth-container">
         <div class="auth-header">
           <div class="heart-icon">💕</div>
-          <h1>KIIT Connect</h1>
-          <p>Create your KIIT dating profile</p>
+          <h1>KIIT Dating</h1>
+          <p>Create your KIIT dating profile 💕</p>
         </div>
         <mat-card class="auth-card">
-          <mat-card-title>Join KIIT Connect</mat-card-title>
+          <mat-card-title>Join KIIT Dating</mat-card-title>
           <mat-card-content>
             <form [formGroup]="registerForm" (ngSubmit)="onSubmit()">
               <mat-form-field appearance="outline" class="full-width">

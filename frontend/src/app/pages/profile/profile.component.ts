@@ -227,7 +227,7 @@ export class ProfileComponent implements OnInit {
       next: (user: any) => {
         this.profileForm.patchValue({ bio: user.bio || '' });
         this.interests = user.interests || [];
-        this.photos = user.photos || [];
+        this.photos = user.photoUrls || user.photos || [];
       }
     });
   }

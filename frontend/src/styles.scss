@@ -2,10 +2,10 @@
    Global Styles — KIIT Dating App
    ──────────────────────────────────────────────── */
 
-/* Google Fonts */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/icon?family=Material+Icons');
 
-* {
+*, *::before, *::after {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
@@ -13,61 +13,84 @@
 
 html, body {
   height: 100%;
-  font-family: 'Inter', sans-serif;
-  background: #f5f5f7;
-  color: #1a1a2e;
+  font-family: 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  background: #f8fafc;
+  color: #0f172a;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Material Icons fix - ensures icons always render properly */
+.material-icons,
+mat-icon {
+  font-family: 'Material Icons' !important;
+  font-weight: normal;
+  font-style: normal;
+  font-size: 24px;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  display: inline-block;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  -webkit-font-feature-settings: 'liga';
   -webkit-font-smoothing: antialiased;
 }
 
-/* ── Material overrides ── */
+/* ── Material Components Modern Look ── */
 .mat-mdc-card {
-  border-radius: 16px !important;
+  border-radius: 20px !important;
+  border: 1px solid rgba(226, 232, 240, 0.8) !important;
+  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.08) !important;
+}
+
+.mat-mdc-button, .mat-mdc-raised-button {
+  font-family: inherit !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.2px !important;
 }
 
 .mat-mdc-raised-button.mat-primary {
-  background: linear-gradient(135deg, #ff6b9d, #c44dff) !important;
+  background: linear-gradient(135deg, #ff4b72, #c026d3) !important;
   color: white !important;
-  border-radius: 12px !important;
-  font-weight: 600 !important;
-  letter-spacing: 0.3px;
+  border-radius: 14px !important;
+  box-shadow: 0 6px 20px rgba(255, 75, 114, 0.35) !important;
+  transition: transform 0.2s ease, box-shadow 0.2s ease !important;
 }
 
-.mat-mdc-form-field-subscript-wrapper {
-  height: 0;
+.mat-mdc-raised-button.mat-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(255, 75, 114, 0.45) !important;
 }
 
 /* ── Scrollbar ── */
 ::-webkit-scrollbar {
   width: 6px;
+  height: 6px;
 }
 ::-webkit-scrollbar-track {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(196, 77, 255, 0.3);
-  border-radius: 3px;
+  background: #cbd5e1;
+  border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
 }
 
-/* ── Animations ── */
-@keyframes fadeSlideUp {
-  from { opacity: 0; transform: translateY(20px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-
-.page-enter {
-  animation: fadeSlideUp 0.35s ease;
-}
-
-/* ── Utility Classes ── */
+/* ── Typography & Gradients ── */
 .text-gradient {
-  background: linear-gradient(135deg, #ff6b9d, #c44dff);
+  background: linear-gradient(135deg, #ff3366 0%, #ff5e62 50%, #c026d3 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
 
-.glass-card {
-  background: rgba(255, 255, 255, 0.85);
-  backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.5);
+.glass-nav {
+  background: rgba(255, 255, 255, 0.92) !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
+  border-bottom: 1px solid rgba(226, 232, 240, 0.8) !important;
 }
