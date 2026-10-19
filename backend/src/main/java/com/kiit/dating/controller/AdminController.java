@@ -22,6 +22,9 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
+import com.kiit.dating.dto.AdminMatchDTO;
+import com.kiit.dating.service.MatchService;
+
 @RestController
 @RequestMapping("/api/admin")
 @PreAuthorize("hasAnyRole('ADMIN', 'MODERATOR')")
@@ -32,6 +35,7 @@ public class AdminController {
     private final ProfileService profileService;
     private final AdminSettingsService adminSettingsService;
     private final SpeedChatService speedChatService;
+    private final MatchService matchService;
 
     // ── User Management ──────────────────────────────────
     @GetMapping("/users")
@@ -222,5 +226,22 @@ public class AdminController {
     public ResponseEntity<Void> breakSpeedChatSession(@PathVariable String sessionUuid) {
         speedChatService.terminateSessionByAdmin(sessionUuid);
         return ResponseEntity.ok().build();
+    }
+
+    // ── Match Approvals (Pending Matches between Students) ─
+    @GetMapping("/matches/pending")
+    public ResponseEntity<List<AdminMatchDTO>> getPendingMatches() {
+        return ResponseEntity.ok(matchService.getPendingMatches());
+    }
+
+    @PutMapping("/matches/{id}/approve")
+    public ResponseEntity<AdminMatchDTO> approveMatch(@PathVariable Long id) {
+        return ResponseEntity.ok(matchService.approveMatch(id));
+    }
+
+    @PutMapping("/matches/{id}/reject")
+    public ResponseEntity<Void> rejectMatch(@PathVariable Long id) {
+        matchService.rejectMatch(id);
+        return ResponseEntity.noContent().build();
     }
 }

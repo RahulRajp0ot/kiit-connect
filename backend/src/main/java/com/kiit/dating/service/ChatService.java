@@ -27,6 +27,9 @@ public class ChatService {
     public List<MessageDTO> getChatHistory(Long matchId) {
         Match match = matchRepository.findById(matchId)
                 .orElseThrow(() -> new IllegalArgumentException("Match not found: " + matchId));
+        if (match.getStatus() != Match.Status.APPROVED) {
+            throw new org.springframework.security.access.AccessDeniedException("This match is not approved yet.");
+        }
         return messageRepository.findByMatchOrderBySentAtAsc(match)
                 .stream().map(this::toDTO).toList();
     }
@@ -35,6 +38,9 @@ public class ChatService {
     public MessageDTO sendMessage(Long matchId, Long senderId, String content) {
         Match match = matchRepository.findById(matchId)
                 .orElseThrow(() -> new IllegalArgumentException("Match not found: " + matchId));
+        if (match.getStatus() != Match.Status.APPROVED) {
+            throw new org.springframework.security.access.AccessDeniedException("This match is not approved yet.");
+        }
         User sender = userRepository.findById(senderId)
                 .orElseThrow(() -> new IllegalArgumentException("Sender user not found: " + senderId));
 

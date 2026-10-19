@@ -223,4 +223,15 @@ export class ApiService {
   deletePost(id: number): Observable<void> {
     return this.http.delete<void>(`${this.base}/posts/${id}`);
   }
+
+  // ── Admin Match Approvals (Mutual Likes) ─────────────
+  adminGetPendingMatches(): Observable<any[]> {
+    return this.http.get<any[]>(`${this.base}/admin/matches/pending`);
+  }
+  adminApproveMatch(matchId: number): Observable<any> {
+    return this.http.put<any>(`${this.base}/admin/matches/${matchId}/approve`, {});
+  }
+  adminRejectMatch(matchId: number): Observable<void> {
+    return this.http.put<void>(`${this.base}/admin/matches/${matchId}/reject`, {});
+  }
 }

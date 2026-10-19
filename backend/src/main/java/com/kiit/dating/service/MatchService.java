@@ -12,6 +12,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
+import com.kiit.dating.dto.AdminMatchDTO;
+import java.time.LocalDateTime;
+
 @Service
 @RequiredArgsConstructor
 public class MatchService {
@@ -24,6 +27,35 @@ public class MatchService {
         return matchRepository.findAllByUserId(userId).stream()
                 .map(match -> toMatchDTO(match, userId))
                 .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<AdminMatchDTO> getPendingMatches() {
+        return matchRepository.findAllPendingMatches().stream()
+                .map(this::toAdminDTO)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public long getPendingMatchesCount() {
+        return matchRepository.countByStatus(Match.Status.PENDING);
+    }
+
+    @Transactional
+    public AdminMatchDTO approveMatch(Long matchId) {
+        Match match = matchRepository.findById(matchId)
+                .orElseThrow(() -> new IllegalArgumentException("Match not found: " + matchId));
+        match.setStatus(Match.Status.APPROVED);
+        match.setMatchedAt(LocalDateTime.now());
+        return toAdminDTO(matchRepository.save(match));
+    }
+
+    @Transactional
+    public void rejectMatch(Long matchId) {
+        Match match = matchRepository.findById(matchId)
+                .orElseThrow(() -> new IllegalArgumentException("Match not found: " + matchId));
+        match.setStatus(Match.Status.REJECTED);
+        matchRepository.save(match);
     }
 
     private MatchDTO toMatchDTO(Match match, Long currentUserId) {
@@ -42,6 +74,42 @@ public class MatchService {
                 .matchedUserName(other.getName())
                 .matchedUserPhoto(photo)
                 .matchedAt(match.getMatchedAt())
+                .build();
+    }
+
+    private AdminMatchDTO toAdminDTO(Match match) {
+        String photoA = null;
+        try {
+            if (match.getUserA().getPhotoUrls() != null && !match.getUserA().getPhotoUrls().isEmpty()) {
+                photoA = match.getUserA().getPhotoUrls().get(0);
+            }
+        } catch (Exception ignored) {}
+
+        String photoB = null;
+        try {
+            if (match.getUserB().getPhotoUrls() != null && !match.getUserB().getPhotoUrls().isEmpty()) {
+                photoB = match.getUserB().getPhotoUrls().get(0);
+            }
+        } catch (Exception ignored) {}
+
+        return AdminMatchDTO.builder()
+                .matchId(match.getId())
+                .user1Id(match.getUserA().getId())
+                .user1Name(match.getUserA().getName())
+                .user1Email(match.getUserA().getEmail())
+                .user1Photo(photoA)
+                .user1Gender(match.getUserA().getGender() != null ? match.getUserA().getGender().name() : "")
+                .user1College(match.getUserA().getCollege())
+                .user1Bio(match.getUserA().getBio())
+                .user2Id(match.getUserB().getId())
+                .user2Name(match.getUserB().getName())
+                .user2Email(match.getUserB().getEmail())
+                .user2Photo(photoB)
+                .user2Gender(match.getUserB().getGender() != null ? match.getUserB().getGender().name() : "")
+                .user2College(match.getUserB().getCollege())
+                .user2Bio(match.getUserB().getBio())
+                .matchedAt(match.getMatchedAt())
+                .status(match.getStatus().name())
                 .build();
     }
 }

@@ -41,6 +41,11 @@ import { AuthService } from '../../core/services/auth.service';
             <mat-icon>people</mat-icon>
             <span>Students & Campus Settings</span>
           </button>
+          <button class="admin-tab-btn" [class.active]="activeTab === 'pendingMatches'" (click)="switchToPendingMatches()">
+            <mat-icon>favorite</mat-icon>
+            <span>Match Approvals</span>
+            <span class="audit-counter-badge pending-badge" *ngIf="pendingMatches.length > 0">{{ pendingMatches.length }}</span>
+          </button>
           <button class="admin-tab-btn" [class.active]="activeTab === 'speedChat'" (click)="switchToSpeedChat()">
             <mat-icon>bolt</mat-icon>
             <span>Speed Connect 24h Audit</span>
@@ -51,7 +56,7 @@ import { AuthService } from '../../core/services/auth.service';
         <!-- TAB 1: STUDENTS & CAMPUS CONTROLS -->
         <ng-container *ngIf="activeTab === 'students'">
 
-        <!-- 5 Stats Cards -->
+        <!-- Stats Cards -->
         <div class="stats-grid">
           <div class="stat-card">
             <span class="stat-num">{{ stats.total }}</span>
@@ -68,6 +73,10 @@ import { AuthService } from '../../core/services/auth.service';
           <div class="stat-card deletion-stat-card" [class.has-deletion]="stats.deletionRequests > 0">
             <span class="stat-num">{{ stats.deletionRequests }}</span>
             <span class="stat-name">Deletion Requests</span>
+          </div>
+          <div class="stat-card match-approval-stat-card" [class.has-matches]="pendingMatches.length > 0" (click)="switchToPendingMatches()" style="cursor: pointer;">
+            <span class="stat-num">{{ pendingMatches.length }}</span>
+            <span class="stat-name">Match Approvals Pending</span>
           </div>
           <div class="stat-card" [class.matching-on]="settings.matchingEnabled" [class.matching-off]="!settings.matchingEnabled">
             <span class="stat-num">{{ settings.matchingEnabled ? 'ON' : 'PAUSED' }}</span>
@@ -435,7 +444,92 @@ import { AuthService } from '../../core/services/auth.service';
 
         </ng-container> <!-- End Tab 1 -->
 
-        <!-- ── TAB 2: SPEED CONNECT 24-HOUR AUDIT ────────────────────── -->
+        <!-- ── TAB 2: MUTUAL MATCH APPROVALS ────────────────────────── -->
+        <div class="pending-matches-section" *ngIf="activeTab === 'pendingMatches'">
+          <mat-card class="table-card">
+            <div class="table-card-header">
+              <div>
+                <h2 class="table-title">💕 Secret Mutual Match Approvals</h2>
+                <p class="table-subtitle">Students who mutually liked each other. Once you approve, the match appears on both their screens and chat unlocks. (Students never know this step exists!)</p>
+              </div>
+              <button mat-stroked-button (click)="loadPendingMatches()" [disabled]="loadingPendingMatches" class="refresh-btn">
+                <mat-icon>refresh</mat-icon>
+                <span>Refresh Matches</span>
+              </button>
+            </div>
+
+            <div class="loading-wrap" *ngIf="loadingPendingMatches">
+              <mat-spinner diameter="36"></mat-spinner>
+            </div>
+
+            <div class="empty-audit" *ngIf="!loadingPendingMatches && pendingMatches.length === 0">
+              <mat-icon class="empty-audit-icon">favorite_border</mat-icon>
+              <h3>No Pending Match Approvals</h3>
+              <p>When two students right-swipe on each other, their match will appear here for your review and approval before they can chat.</p>
+            </div>
+
+            <div class="pending-matches-grid" *ngIf="!loadingPendingMatches && pendingMatches.length > 0">
+              <div class="admin-match-pair-card" *ngFor="let m of pendingMatches">
+                <div class="match-pair-top">
+                  <div class="pair-meta">
+                    <span class="match-time"><mat-icon class="meta-icon">schedule</mat-icon> {{ formatTime(m.matchedAt) }}</span>
+                    <span class="match-id-badge">Match #{{ m.matchId }}</span>
+                  </div>
+                  <div class="match-pair-actions">
+                    <button mat-flat-button class="match-approve-btn" (click)="approveMatch(m)" [disabled]="actionLoading[m.matchId]">
+                      <mat-icon>check_circle</mat-icon>
+                      <span>Approve Match</span>
+                    </button>
+                    <button mat-flat-button class="match-reject-btn" (click)="rejectMatch(m)" [disabled]="actionLoading[m.matchId]">
+                      <mat-icon>cancel</mat-icon>
+                      <span>Decline</span>
+                    </button>
+                  </div>
+                </div>
+
+                <div class="match-pair-wrapper">
+                  <!-- Student 1 -->
+                  <div class="person-box">
+                    <div class="person-img-wrap">
+                      <img [src]="m.user1Photo || 'https://ui-avatars.com/api/?name=' + m.user1Name + '&background=e0e7ff&color=4338ca'" alt="Photo">
+                      <span class="gender-pill">{{ m.user1Gender || 'Student' }}</span>
+                    </div>
+                    <div class="person-info">
+                      <h4 class="person-name">{{ m.user1Name }}</h4>
+                      <p class="person-email">{{ m.user1Email }}</p>
+                      <p class="person-college" *ngIf="m.user1College">🏫 {{ m.user1College }}</p>
+                      <p class="person-bio" *ngIf="m.user1Bio">"{{ m.user1Bio }}"</p>
+                    </div>
+                  </div>
+
+                  <!-- Center Heart Badge -->
+                  <div class="match-center-divider">
+                    <div class="heart-pulse-circle">
+                      <mat-icon>favorite</mat-icon>
+                    </div>
+                    <span class="mutual-tag">Mutual Liked</span>
+                  </div>
+
+                  <!-- Student 2 -->
+                  <div class="person-box">
+                    <div class="person-img-wrap">
+                      <img [src]="m.user2Photo || 'https://ui-avatars.com/api/?name=' + m.user2Name + '&background=fce7f3&color=db2777'" alt="Photo">
+                      <span class="gender-pill">{{ m.user2Gender || 'Student' }}</span>
+                    </div>
+                    <div class="person-info">
+                      <h4 class="person-name">{{ m.user2Name }}</h4>
+                      <p class="person-email">{{ m.user2Email }}</p>
+                      <p class="person-college" *ngIf="m.user2College">🏫 {{ m.user2College }}</p>
+                      <p class="person-bio" *ngIf="m.user2Bio">"{{ m.user2Bio }}"</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </mat-card>
+        </div>
+
+        <!-- ── TAB 3: SPEED CONNECT 24-HOUR AUDIT ────────────────────── -->
         <div class="speed-chat-audit-section" *ngIf="activeTab === 'speedChat'">
           <mat-card class="table-card">
             <div class="table-card-header">
@@ -720,6 +814,15 @@ import { AuthService } from '../../core/services/auth.service';
 
     .stat-card.deletion-stat-card.has-deletion .stat-num {
       color: #dc2626;
+    }
+
+    .stat-card.match-approval-stat-card.has-matches {
+      border-color: #fbcfe8;
+      background: #fff5f7;
+    }
+
+    .stat-card.match-approval-stat-card.has-matches .stat-num {
+      color: #db2777;
     }
 
     .stat-card {
@@ -1449,6 +1552,251 @@ import { AuthService } from '../../core/services/auth.service';
       margin-bottom: 12px;
     }
 
+    /* ── Pending Match Approvals ── */
+    .audit-counter-badge.pending-badge {
+      background: #db2777;
+    }
+
+    .pending-matches-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      padding: 16px 4px;
+    }
+
+    .admin-match-pair-card {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 18px;
+      padding: 20px 24px;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.04);
+      transition: all 0.2s ease;
+    }
+
+    .admin-match-pair-card:hover {
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+      border-color: #cbd5e1;
+    }
+
+    .match-pair-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 18px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid #f1f5f9;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .pair-meta {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .match-time {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 0.85rem;
+      color: #64748b;
+      font-weight: 500;
+    }
+
+    .meta-icon {
+      font-size: 16px;
+      width: 16px;
+      height: 16px;
+      vertical-align: middle;
+    }
+
+    .match-id-badge {
+      background: #f1f5f9;
+      color: #475569;
+      font-size: 0.75rem;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 6px;
+    }
+
+    .match-pair-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .match-approve-btn {
+      background: linear-gradient(135deg, #10b981, #059669) !important;
+      color: white !important;
+      font-weight: 700 !important;
+      border-radius: 12px !important;
+      padding: 6px 18px !important;
+      box-shadow: 0 3px 10px rgba(16, 185, 129, 0.3) !important;
+      display: inline-flex !important;
+      align-items: center !important;
+      gap: 6px !important;
+    }
+
+    .match-reject-btn {
+      background: #fef2f2 !important;
+      color: #dc2626 !important;
+      font-weight: 700 !important;
+      border: 1px solid #fecaca !important;
+      border-radius: 12px !important;
+      padding: 6px 16px !important;
+      display: inline-flex !important;
+      align-items: center !important;
+      gap: 6px !important;
+    }
+
+    .match-pair-wrapper {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      align-items: center;
+      gap: 20px;
+    }
+
+    .person-box {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      background: #f8fafc;
+      padding: 16px;
+      border-radius: 14px;
+      border: 1px solid #edf2f7;
+    }
+
+    .person-img-wrap {
+      position: relative;
+      width: 72px;
+      height: 72px;
+      flex-shrink: 0;
+      border-radius: 14px;
+      overflow: hidden;
+      border: 2px solid white;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    .person-img-wrap img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .gender-pill {
+      position: absolute;
+      bottom: 2px;
+      left: 2px;
+      right: 2px;
+      background: rgba(15, 23, 42, 0.75);
+      color: white;
+      font-size: 0.65rem;
+      font-weight: 700;
+      text-align: center;
+      border-radius: 4px;
+      padding: 1px 0;
+      text-transform: capitalize;
+    }
+
+    .person-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .person-name {
+      font-size: 1.05rem;
+      font-weight: 800;
+      color: #0f172a;
+      margin: 0 0 3px 0;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .person-email {
+      font-size: 0.8rem;
+      color: #64748b;
+      margin: 0 0 4px 0;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .person-college {
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: #4338ca;
+      margin: 0 0 4px 0;
+    }
+
+    .person-bio {
+      font-size: 0.78rem;
+      color: #475569;
+      font-style: italic;
+      margin: 0;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .match-center-divider {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      padding: 0 8px;
+    }
+
+    .heart-pulse-circle {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #ec4899, #f43f5e);
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 14px rgba(236, 72, 153, 0.4);
+      animation: heartPulse 2s infinite ease-in-out;
+    }
+
+    @keyframes heartPulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.12); }
+    }
+
+    .heart-pulse-circle mat-icon {
+      font-size: 24px;
+      width: 24px;
+      height: 24px;
+    }
+
+    .mutual-tag {
+      font-size: 0.7rem;
+      font-weight: 800;
+      color: #be185d;
+      background: #fce7f3;
+      padding: 2px 8px;
+      border-radius: 9999px;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+      white-space: nowrap;
+    }
+
+    @media (max-width: 768px) {
+      .match-pair-wrapper {
+        grid-template-columns: 1fr;
+        gap: 12px;
+      }
+      .match-center-divider {
+        flex-direction: row;
+        justify-content: center;
+        padding: 4px 0;
+      }
+    }
+
     /* ── Admin Modals ───────────────────────────────────────────────── */
     .admin-modal-backdrop {
       position: fixed;
@@ -1799,9 +2147,14 @@ export class AdminComponent implements OnInit {
 
   newDomain = '';
 
-  activeTab: 'students' | 'speedChat' = 'students';
+  activeTab: 'students' | 'pendingMatches' | 'speedChat' = 'students';
   speedChatSessions: any[] = [];
   loadingSpeedChat = false;
+
+  // Match Approvals
+  pendingMatches: any[] = [];
+  loadingPendingMatches = false;
+  actionLoading: { [id: number]: boolean } = {};
 
   // Edit Profile Modal
   editingUser: any = null;
@@ -1817,6 +2170,7 @@ export class AdminComponent implements OnInit {
 
   ngOnInit() {
     this.loadAllData();
+    this.loadPendingMatches();
   }
 
   loadAllData() {
@@ -2079,6 +2433,57 @@ export class AdminComponent implements OnInit {
         this.snack.open(`Deletion request rejected for ${user.name}. Account kept active.`, 'OK', { duration: 3000 });
       },
       error: () => this.snack.open('Failed to reject deletion request', 'Dismiss', { duration: 3000 })
+    });
+  }
+
+  switchToPendingMatches() {
+    this.activeTab = 'pendingMatches';
+    this.loadPendingMatches();
+  }
+
+  loadPendingMatches() {
+    this.loadingPendingMatches = true;
+    this.api.adminGetPendingMatches().subscribe({
+      next: (matches: any[]) => {
+        this.pendingMatches = matches || [];
+        this.loadingPendingMatches = false;
+      },
+      error: () => {
+        this.loadingPendingMatches = false;
+      }
+    });
+  }
+
+  approveMatch(match: any) {
+    this.actionLoading[match.matchId] = true;
+    this.api.adminApproveMatch(match.matchId).subscribe({
+      next: () => {
+        this.actionLoading[match.matchId] = false;
+        this.pendingMatches = this.pendingMatches.filter(m => m.matchId !== match.matchId);
+        this.snack.open(`Match between ${match.user1Name} and ${match.user2Name} approved! 💕 They can now see each other and chat!`, 'OK', { duration: 4000 });
+      },
+      error: () => {
+        this.actionLoading[match.matchId] = false;
+        this.snack.open('Failed to approve match', 'Dismiss', { duration: 3000 });
+      }
+    });
+  }
+
+  rejectMatch(match: any) {
+    if (!confirm(`Are you sure you want to decline this match between ${match.user1Name} and ${match.user2Name}? Neither student will be notified.`)) {
+      return;
+    }
+    this.actionLoading[match.matchId] = true;
+    this.api.adminRejectMatch(match.matchId).subscribe({
+      next: () => {
+        this.actionLoading[match.matchId] = false;
+        this.pendingMatches = this.pendingMatches.filter(m => m.matchId !== match.matchId);
+        this.snack.open('Match declined. It has been removed.', 'OK', { duration: 3000 });
+      },
+      error: () => {
+        this.actionLoading[match.matchId] = false;
+        this.snack.open('Failed to decline match', 'Dismiss', { duration: 3000 });
+      }
     });
   }
 

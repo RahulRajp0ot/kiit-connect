@@ -14,8 +14,21 @@ import java.util.Optional;
 @Repository
 public interface MatchRepository extends JpaRepository<Match, Long> {
 
-    @Query("SELECT m FROM Match m JOIN FETCH m.userA JOIN FETCH m.userB WHERE m.userA.id = :userId OR m.userB.id = :userId ORDER BY m.matchedAt DESC")
-    List<Match> findAllByUserId(@Param("userId") Long userId);
+    @Query("SELECT m FROM Match m JOIN FETCH m.userA JOIN FETCH m.userB WHERE (m.userA.id = :userId OR m.userB.id = :userId) AND m.status = :status ORDER BY m.matchedAt DESC")
+    List<Match> findAllByUserIdAndStatus(@Param("userId") Long userId, @Param("status") Match.Status status);
+
+    default List<Match> findAllByUserId(Long userId) {
+        return findAllByUserIdAndStatus(userId, Match.Status.APPROVED);
+    }
+
+    @Query("SELECT m FROM Match m JOIN FETCH m.userA JOIN FETCH m.userB WHERE m.status = :status ORDER BY m.matchedAt DESC")
+    List<Match> findAllByStatus(@Param("status") Match.Status status);
+
+    default List<Match> findAllPendingMatches() {
+        return findAllByStatus(Match.Status.PENDING);
+    }
+
+    long countByStatus(Match.Status status);
 
     @Query("SELECT m FROM Match m WHERE (m.userA = :u1 AND m.userB = :u2) OR (m.userA = :u2 AND m.userB = :u1)")
     Optional<Match> findByUsers(@Param("u1") User u1, @Param("u2") User u2);

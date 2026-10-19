@@ -146,11 +146,15 @@ public class DiscoveryService {
         if (mutual) {
             boolean alreadyMatched = matchRepository.findByUsers(fromUser, toUser).isPresent();
             if (!alreadyMatched) {
-                Match match = matchRepository.save(
-                        Match.builder().userA(fromUser).userB(toUser).build()
+                matchRepository.save(
+                        Match.builder()
+                                .userA(fromUser)
+                                .userB(toUser)
+                                .status(Match.Status.PENDING)
+                                .build()
                 );
-                response.put("status", "matched");
-                response.put("matchId", match.getId());
+                // Return "liked" so user does NOT know they matched or that admin review is happening
+                response.put("status", "liked");
                 return response;
             }
         }

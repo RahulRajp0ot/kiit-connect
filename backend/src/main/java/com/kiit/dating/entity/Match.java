@@ -27,8 +27,22 @@ public class Match {
     @Column(updatable = false)
     private LocalDateTime matchedAt;
 
+    public enum Status {
+        PENDING, APPROVED, REJECTED
+    }
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 32)
+    @Builder.Default
+    private Status status = Status.PENDING;
+
     @PrePersist
     protected void onCreate() {
-        matchedAt = LocalDateTime.now();
+        if (matchedAt == null) {
+            matchedAt = LocalDateTime.now();
+        }
+        if (status == null) {
+            status = Status.PENDING;
+        }
     }
 }
