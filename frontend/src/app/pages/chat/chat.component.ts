@@ -379,16 +379,6 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
         this.sending = false;
       }
     });
-
-    // 2. Also publish over STOMP if connected (including senderId)
-    if (this.connected && this.stompClient) {
-      try {
-        this.stompClient.publish({
-          destination: `/app/chat/${this.matchId}`,
-          body: JSON.stringify({ content, matchId: this.matchId, senderId: this.myId })
-        });
-      } catch (e) {}
-    }
   }
 
   getPartnerAvatar(url?: string): string {
