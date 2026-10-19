@@ -11,8 +11,6 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { ApiService } from '../../core/services/api.service';
 import { AuthService } from '../../core/services/auth.service';
 import { Client } from '@stomp/stompjs';
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const SockJS = require('sockjs-client');
 import { environment } from '../../../environments/environment';
 
 @Component({
@@ -33,7 +31,7 @@ import { environment } from '../../../environments/environment';
         </div>
         <h1 class="lobby-title">Random 1-on-1 Chat</h1>
         <p class="lobby-desc">
-          Inspired by random chatrooms like ChatBlink — match with another KIIT student instantly in real time!
+          Match with another KIIT student instantly in real time!
           No profile photos are shared. Chats are temporary and disappear forever when you disconnect or refresh.
         </p>
 
@@ -691,8 +689,9 @@ export class SpeedChatComponent implements OnInit, OnDestroy, AfterViewChecked {
 
   private initStomp() {
     const token = this.auth.getToken();
+    const wsUrl = environment.wsUrl.replace(/^http/, 'ws');
     this.stompClient = new Client({
-      webSocketFactory: () => new SockJS(`${environment.wsUrl}`),
+      brokerURL: wsUrl,
       connectHeaders: { Authorization: `Bearer ${token}` },
       onConnect: () => {
         this.connected = true;

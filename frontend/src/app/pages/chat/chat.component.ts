@@ -11,8 +11,6 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { ApiService } from '../../core/services/api.service';
 import { AuthService } from '../../core/services/auth.service';
 import { Client } from '@stomp/stompjs';
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const SockJS = require('sockjs-client');
 import { environment } from '../../../environments/environment';
 
 @Component({
@@ -207,8 +205,9 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
 
   connectWebSocket() {
     const token = this.auth.getToken();
+    const wsUrl = environment.wsUrl.replace(/^http/, 'ws');
     this.stompClient = new Client({
-      webSocketFactory: () => new SockJS(`${environment.wsUrl}`),
+      brokerURL: wsUrl,
       connectHeaders: { Authorization: `Bearer ${token}` },
       onConnect: () => {
         this.connected = true;
