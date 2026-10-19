@@ -24,6 +24,10 @@ export class AuthService {
 
   constructor(private http: HttpClient, private router: Router) {}
 
+  sendOtp(email: string): Observable<any> {
+    return this.http.post<any>(`${environment.apiUrl}/auth/send-otp`, { email });
+  }
+
   register(data: any): Observable<AuthResponse> {
     return this.http.post<AuthResponse>(`${environment.apiUrl}/auth/register`, data).pipe(
       tap(res => this.setSession(res))

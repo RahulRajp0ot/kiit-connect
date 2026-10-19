@@ -12,6 +12,9 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.util.HashMap;
+import java.util.Map;
+
 @Service
 @RequiredArgsConstructor
 public class AuthService {
@@ -21,20 +24,55 @@ public class AuthService {
     private final JwtUtil jwtUtil;
     private final AuthenticationManager authenticationManager;
     private final AdminSettingsService adminSettingsService;
+    private final OtpService otpService;
 
-    public AuthResponse register(RegisterRequest request) {
-        if (!adminSettingsService.isEmailDomainAllowed(request.getEmail())) {
+    public Map<String, Object> sendVerificationOtp(String email) {
+        if (email == null || email.isBlank()) {
+            throw new IllegalArgumentException("Email is required");
+        }
+        String cleanEmail = email.toLowerCase().trim();
+
+        if (!adminSettingsService.isEmailDomainAllowed(cleanEmail)) {
             throw new IllegalArgumentException("Registration is restricted to college email domains: "
                     + adminSettingsService.getSettings().getAllowedDomains());
         }
 
-        if (userRepository.existsByEmail(request.getEmail())) {
+        if (userRepository.existsByEmail(cleanEmail)) {
+            throw new IllegalArgumentException("This college email is already registered. Please login.");
+        }
+
+        String code = otpService.createAndSendOtp(cleanEmail);
+
+        Map<String, Object> resp = new HashMap<>();
+        resp.put("status", "success");
+        resp.put("message", "A 6-digit verification code has been sent to " + cleanEmail);
+        if (!otpService.isSmtpConfigured()) {
+            resp.put("devOtp", code);
+        }
+        return resp;
+    }
+
+    public AuthResponse register(RegisterRequest request) {
+        String cleanEmail = request.getEmail().toLowerCase().trim();
+
+        if (!adminSettingsService.isEmailDomainAllowed(cleanEmail)) {
+            throw new IllegalArgumentException("Registration is restricted to college email domains: "
+                    + adminSettingsService.getSettings().getAllowedDomains());
+        }
+
+        if (userRepository.existsByEmail(cleanEmail)) {
             throw new IllegalArgumentException("Email already registered");
         }
 
+        // Validate OTP
+        boolean validOtp = otpService.validateAndConsumeOtp(cleanEmail, request.getOtp());
+        if (!validOtp) {
+            throw new IllegalArgumentException("Invalid or expired 6-digit verification code. Please check your email or request a new code.");
+        }
+
         User user = User.builder()
-                .name(request.getName())
-                .email(request.getEmail().toLowerCase())
+                .name(request.getName().trim())
+                .email(cleanEmail)
                 .password(passwordEncoder.encode(request.getPassword()))
                 .gender(request.getGender())
                 .dateOfBirth(request.getDateOfBirth())

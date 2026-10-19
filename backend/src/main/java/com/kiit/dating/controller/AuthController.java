@@ -14,6 +14,12 @@ public class AuthController {
 
     private final AuthService authService;
 
+    @PostMapping("/send-otp")
+    public ResponseEntity<java.util.Map<String, Object>> sendOtp(@RequestBody java.util.Map<String, String> body) {
+        String email = body.get("email");
+        return ResponseEntity.ok(authService.sendVerificationOtp(email));
+    }
+
     @PostMapping("/register")
     public ResponseEntity<AuthResponse> register(@Valid @RequestBody RegisterRequest request) {
         return ResponseEntity.ok(authService.register(request));

@@ -26,4 +26,6 @@ public class RegisterRequest {
     @NotNull
     @Past
     private LocalDate dateOfBirth;
+
+    private String otp;
 }
