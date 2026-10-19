@@ -19,6 +19,12 @@ export class ApiService {
   login(data: any): Observable<any> {
     return this.http.post(`${this.base}/auth/login`, data);
   }
+  sendForgotPasswordOtp(email: string): Observable<any> {
+    return this.http.post(`${this.base}/auth/forgot-password/send-otp`, { email });
+  }
+  resetPassword(data: { email: string; otp: string; newPassword: string }): Observable<any> {
+    return this.http.post(`${this.base}/auth/forgot-password/reset`, data);
+  }
 
   // ── Profile ───────────────────────────────────────────
   getMyProfile(): Observable<any> {

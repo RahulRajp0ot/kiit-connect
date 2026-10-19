@@ -42,6 +42,11 @@ import { AuthService } from '../../core/services/auth.service';
                   <mat-icon>{{ showPass ? 'visibility_off' : 'visibility' }}</mat-icon>
                 </button>
               </mat-form-field>
+
+              <div class="forgot-row">
+                <a routerLink="/forgot-password" class="forgot-link">Forgot Password?</a>
+              </div>
+
               <p class="error-msg" *ngIf="error">{{ error }}</p>
               <button mat-raised-button color="primary" type="submit" class="full-width submit-btn"
                       [disabled]="loginForm.invalid || loading">
@@ -70,6 +75,23 @@ import { AuthService } from '../../core/services/auth.service';
     .full-width { width: 100%; margin-bottom: 12px; }
     .submit-btn { height: 48px; font-size: 1rem; font-weight: 600; border-radius: 8px; }
     .error-msg { color: #e91e63; margin: -8px 0 8px; font-size: 0.85rem; }
+    .forgot-row {
+      display: flex;
+      justify-content: flex-end;
+      margin: -4px 0 16px;
+    }
+    .forgot-link {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: #9c27b0;
+      text-decoration: none;
+      transition: color 0.2s;
+      cursor: pointer;
+    }
+    .forgot-link:hover {
+      color: #e91e8c;
+      text-decoration: underline;
+    }
     .switch-link { margin-top: 16px; } .switch-link a { color: #9c27b0; font-weight: 600; }
   `]
 })

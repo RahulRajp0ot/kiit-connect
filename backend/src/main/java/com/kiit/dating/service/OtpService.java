@@ -37,6 +37,25 @@ public class OtpService {
     }
 
     @Transactional
+    public String createAndSendPasswordResetOtp(String email) {
+        String code = emailService.generate6DigitOtp();
+        LocalDateTime expiresAt = LocalDateTime.now().plusMinutes(10);
+
+        EmailVerificationOtp entity = EmailVerificationOtp.builder()
+                .email(email.toLowerCase().trim())
+                .otp(code)
+                .expiresAt(expiresAt)
+                .used(false)
+                .createdAt(LocalDateTime.now())
+                .build();
+
+        otpRepository.save(entity);
+        emailService.sendPasswordResetOtpEmail(email, code);
+
+        return code;
+    }
+
+    @Transactional
     public boolean validateAndConsumeOtp(String email, String inputOtp) {
         if (inputOtp == null || inputOtp.isBlank()) {
             return false;

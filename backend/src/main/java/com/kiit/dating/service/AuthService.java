@@ -104,6 +104,59 @@ public class AuthService {
         return buildAuthResponse(user, token);
     }
 
+    public Map<String, Object> sendForgotPasswordOtp(String email) {
+        if (email == null || email.isBlank()) {
+            throw new IllegalArgumentException("College email is required");
+        }
+        String cleanEmail = email.toLowerCase().trim();
+
+        User user = userRepository.findByEmail(cleanEmail)
+                .orElseThrow(() -> new IllegalArgumentException("No registered account found with email: " + cleanEmail));
+
+        if (!user.isActive()) {
+            throw new DisabledException("Your account is deactivated. Please contact campus admin.");
+        }
+
+        String code = otpService.createAndSendPasswordResetOtp(cleanEmail);
+
+        Map<String, Object> resp = new HashMap<>();
+        resp.put("status", "success");
+        resp.put("message", "A 6-digit password reset code has been sent to " + cleanEmail);
+        if (!otpService.isSmtpConfigured()) {
+            resp.put("devOtp", code);
+        }
+        return resp;
+    }
+
+    public Map<String, Object> resetPassword(ResetPasswordRequest request) {
+        String cleanEmail = request.getEmail().toLowerCase().trim();
+
+        User user = userRepository.findByEmail(cleanEmail)
+                .orElseThrow(() -> new IllegalArgumentException("No account found with email: " + cleanEmail));
+
+        if (!user.isActive()) {
+            throw new DisabledException("Your account is deactivated. Please contact campus admin.");
+        }
+
+        // Validate OTP
+        boolean validOtp = otpService.validateAndConsumeOtp(cleanEmail, request.getOtp());
+        if (!validOtp) {
+            throw new IllegalArgumentException("Invalid or expired 6-digit verification code. Please check your email or request a new code.");
+        }
+
+        if (request.getNewPassword() == null || request.getNewPassword().trim().length() < 8) {
+            throw new IllegalArgumentException("New password must be at least 8 characters");
+        }
+
+        user.setPassword(passwordEncoder.encode(request.getNewPassword().trim()));
+        userRepository.save(user);
+
+        Map<String, Object> resp = new HashMap<>();
+        resp.put("status", "success");
+        resp.put("message", "Password reset successfully! You can now log in with your new password.");
+        return resp;
+    }
+
     private AuthResponse buildAuthResponse(User user, String token) {
         return AuthResponse.builder()
                 .token(token)
