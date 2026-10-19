@@ -22,12 +22,13 @@ public interface UserRepository extends JpaRepository<User, Long> {
           AND u.gender != :gender
           AND u.active = true
           AND u.profileComplete = true
-          AND u.approvalStatus = com.kiit.dating.entity.User.ApprovalStatus.APPROVED
+          AND u.approvalStatus = :approvalStatus
           AND u.id NOT IN (
               SELECT s.toUser.id FROM UserSwipe s WHERE s.fromUser.id = :currentUserId
           )
         ORDER BY FUNCTION('RANDOM')
         """)
     List<User> findDiscoverableUsers(@Param("currentUserId") Long currentUserId,
-                                     @Param("gender") User.Gender gender);
+                                     @Param("gender") User.Gender gender,
+                                     @Param("approvalStatus") User.ApprovalStatus approvalStatus);
 }

@@ -45,7 +45,7 @@ public class DiscoveryService {
             return Collections.emptyList();
         }
 
-        return userRepository.findDiscoverableUsers(currentUserId, current.getGender())
+        return userRepository.findDiscoverableUsers(currentUserId, current.getGender(), User.ApprovalStatus.APPROVED)
                 .stream()
                 .map(profileService::toDTO)
                 .toList();
