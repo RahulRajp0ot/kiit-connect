@@ -73,6 +73,10 @@ import { AuthService } from '../../core/services/auth.service';
             <span class="stat-num">{{ settings.matchingEnabled ? 'ON' : 'PAUSED' }}</span>
             <span class="stat-name">Matching Status</span>
           </div>
+          <div class="stat-card" [class.matching-on]="settings.speedChatEnabled" [class.matching-off]="!settings.speedChatEnabled">
+            <span class="stat-num">{{ settings.speedChatEnabled ? 'ON' : 'PAUSED' }}</span>
+            <span class="stat-name">Speed Connect Status</span>
+          </div>
           <div class="stat-card">
             <span class="stat-num">{{ settings.defaultDailySwipeLimit }}</span>
             <span class="stat-name">Default Daily Limit</span>
@@ -111,6 +115,39 @@ import { AuthService } from '../../core/services/auth.service';
             <button mat-raised-button color="primary" class="save-settings-btn" (click)="saveMatchingSettings()">
               <mat-icon>save</mat-icon>
               <span>Save Matching Settings</span>
+            </button>
+          </mat-card>
+
+          <!-- 1B. Speed Connect 1-on-1 Switch Card -->
+          <mat-card class="control-card">
+            <div class="card-top">
+              <div class="card-icon-wrap" [class.paused]="!settings.speedChatEnabled">
+                <mat-icon>{{ settings.speedChatEnabled ? 'bolt' : 'pause_circle' }}</mat-icon>
+              </div>
+              <div>
+                <h3 class="card-heading">Speed Connect 1-on-1 Switch</h3>
+                <p class="card-subheading">Turn random 1-on-1 chats ON or PAUSE with a custom announcement</p>
+              </div>
+            </div>
+
+            <div class="matching-toggle-row">
+              <mat-slide-toggle [(ngModel)]="settings.speedChatEnabled" color="primary">
+                <strong>{{ settings.speedChatEnabled ? 'Speed Connect is ACTIVE (Live)' : 'Speed Connect is PAUSED' }}</strong>
+              </mat-slide-toggle>
+            </div>
+
+            <!-- Custom Message Box shown to users when speed chat is disabled -->
+            <div class="message-field-wrap">
+              <label class="input-label">Announcement Message (Shown to users when Speed Connect is paused):</label>
+              <mat-form-field appearance="outline" class="full-width">
+                <textarea matInput [(ngModel)]="settings.speedChatDisabledMessage" rows="3"
+                          placeholder="e.g. Speed Connect is temporarily paused for maintenance. Stay tuned! ⚡"></textarea>
+              </mat-form-field>
+            </div>
+
+            <button mat-raised-button color="primary" class="save-settings-btn" (click)="saveSpeedChatToggleSettings()">
+              <mat-icon>save</mat-icon>
+              <span>Save Speed Connect Switch</span>
             </button>
           </mat-card>
 
@@ -580,7 +617,12 @@ import { AuthService } from '../../core/services/auth.service';
                     <span class="t-sender-handle">🎭 {{ m.senderTempName }}</span>
                     <span class="t-msg-time">{{ formatTime(m.sentAt) }}</span>
                   </div>
-                  <div class="t-msg-content">{{ m.content }}</div>
+                  <div class="t-msg-img-wrap" *ngIf="m.imageUrl">
+                    <a [href]="m.imageUrl" target="_blank" title="Click to view full photo">
+                      <img [src]="m.imageUrl" class="t-msg-img">
+                    </a>
+                  </div>
+                  <div class="t-msg-content" *ngIf="m.content">{{ m.content }}</div>
                 </div>
               </div>
             </div>
@@ -1631,6 +1673,27 @@ import { AuthService } from '../../core/services/auth.service';
       word-break: break-word;
     }
 
+    .t-msg-img-wrap {
+      margin: 8px 0;
+      max-width: 260px;
+      border-radius: 12px;
+      overflow: hidden;
+      border: 1px solid #e2e8f0;
+      background: #0f172a;
+    }
+
+    .t-msg-img {
+      width: 100%;
+      max-height: 220px;
+      object-fit: cover;
+      display: block;
+      transition: transform 0.2s;
+    }
+
+    .t-msg-img:hover {
+      transform: scale(1.02);
+    }
+
     .empty-transcript {
       text-align: center;
       padding: 48px 16px;
@@ -1658,6 +1721,8 @@ export class AdminComponent implements OnInit {
     matchingDisabledMessage: '',
     defaultDailySwipeLimit: 5,
     defaultDailySpeedChatLimit: 100,
+    speedChatEnabled: true,
+    speedChatDisabledMessage: '',
     allowedDomains: []
   };
 
@@ -1717,6 +1782,21 @@ export class AdminComponent implements OnInit {
       },
       error: () => {
         this.snack.open('Failed to update matching settings', 'Dismiss', { duration: 3000 });
+      }
+    });
+  }
+
+  saveSpeedChatToggleSettings() {
+    this.api.adminUpdateSpeedChatToggle(this.settings.speedChatEnabled, this.settings.speedChatDisabledMessage).subscribe({
+      next: (res: any) => {
+        this.settings = res;
+        const msg = this.settings.speedChatEnabled
+          ? 'Speed Connect is now LIVE for all students! ⚡'
+          : 'Speed Connect has been PAUSED. Announcement updated! 📢';
+        this.snack.open(msg, 'OK', { duration: 3500 });
+      },
+      error: () => {
+        this.snack.open('Failed to update Speed Connect switch', 'Dismiss', { duration: 3000 });
       }
     });
   }

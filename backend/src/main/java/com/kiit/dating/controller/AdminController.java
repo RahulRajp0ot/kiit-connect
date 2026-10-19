@@ -177,6 +177,13 @@ public class AdminController {
         return ResponseEntity.ok(adminSettingsService.updateMatching(enabled, message));
     }
 
+    @PutMapping("/settings/speed-chat-toggle")
+    public ResponseEntity<AppSettings> updateSpeedChatToggle(@RequestBody Map<String, Object> body) {
+        boolean enabled = Boolean.TRUE.equals(body.get("enabled"));
+        String message = body.get("message") != null ? body.get("message").toString() : null;
+        return ResponseEntity.ok(adminSettingsService.updateSpeedChatToggle(enabled, message));
+    }
+
     @PutMapping("/settings/limit")
     public ResponseEntity<AppSettings> updateDefaultLimit(@RequestBody Map<String, Object> body) {
         int limit = Integer.parseInt(body.get("limit").toString());

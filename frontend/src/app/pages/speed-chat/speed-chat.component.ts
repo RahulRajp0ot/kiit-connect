@@ -8,6 +8,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { RouterLink } from '@angular/router';
 import { ApiService } from '../../core/services/api.service';
 import { AuthService } from '../../core/services/auth.service';
 import { Client } from '@stomp/stompjs';
@@ -17,11 +18,116 @@ import { environment } from '../../../environments/environment';
   selector: 'app-speed-chat',
   standalone: true,
   imports: [
-    CommonModule, FormsModule, ReactiveFormsModule, MatCardModule, MatButtonModule,
+    CommonModule, RouterLink, FormsModule, ReactiveFormsModule, MatCardModule, MatButtonModule,
     MatIconModule, MatInputModule, MatFormFieldModule, MatProgressSpinnerModule, MatSnackBarModule
   ],
   template: `
     <div class="speed-chat-container">
+
+      <!-- ── 0A. LOADING STATE ── -->
+      <div class="state-card" *ngIf="loadingStatus">
+        <mat-spinner diameter="44" color="accent"></mat-spinner>
+        <p class="state-text">Checking Speed Connect status...</p>
+      </div>
+
+      <!-- ── 0B. REJECTED PROFILE CARD WITH REASON & APPEAL ── -->
+      <div class="state-card review-card rejected-card" *ngIf="!loadingStatus && !statusInfo.isApproved && statusInfo.approvalStatus === 'REJECTED'">
+        <div class="review-icon-wrap rejected-icon-wrap">
+          <mat-icon class="huge-icon rejected-icon">cancel</mat-icon>
+        </div>
+        <div class="status-badge-chip rejected-badge">
+          <mat-icon class="badge-icon">report_problem</mat-icon>
+          <span>Profile Needs Update</span>
+        </div>
+
+        <h2 class="empty-title">Profile Rejected by Admin</h2>
+
+        <div class="announcement-quote-box rejection-reason-box">
+          <mat-icon class="quote-mark">rate_review</mat-icon>
+          <div class="reason-content">
+            <span class="reason-label">Reason from Admin:</span>
+            <p class="quote-text">{{ statusInfo.rejectionReason || 'Your profile details or photo do not meet campus community verification guidelines. Please update your profile.' }}</p>
+          </div>
+        </div>
+
+        <p class="empty-desc">
+          Speed Connect is locked until your profile is approved. Please update your profile photo and info, then click <strong>"Appeal for Review Again"</strong> below so admin can re-review!
+        </p>
+
+        <div class="limit-actions-row">
+          <button mat-raised-button class="appeal-btn" (click)="appealReview()" [disabled]="appealing">
+            <mat-icon>send</mat-icon>
+            <span>{{ appealing ? 'Submitting Appeal...' : 'Appeal for Review Again 🚀' }}</span>
+          </button>
+          <button mat-stroked-button routerLink="/profile" class="profile-link-btn">
+            <mat-icon>edit</mat-icon>
+            <span>Update Profile</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- ── 0C. WAITING FOR REVIEW (PENDING) CARD ── -->
+      <div class="state-card review-card" *ngIf="!loadingStatus && !statusInfo.isApproved && statusInfo.approvalStatus !== 'REJECTED'">
+        <div class="review-icon-wrap">
+          <mat-icon class="huge-icon review-icon">hourglass_top</mat-icon>
+        </div>
+        <div class="status-badge-chip review-badge">
+          <mat-icon class="badge-icon">verified_user</mat-icon>
+          <span>Account Under Review</span>
+        </div>
+
+        <h2 class="empty-title">Waiting for Review</h2>
+
+        <div class="announcement-quote-box review-box">
+          <mat-icon class="quote-mark">format_quote</mat-icon>
+          <p class="quote-text">Your campus profile is currently pending administrator verification. Random 1-on-1 chat will be unlocked as soon as an admin approves your account.</p>
+          <span class="quote-author">— KIIT Connects Verification Team</span>
+        </div>
+
+        <p class="empty-desc">
+          Make sure your profile has your real college photo and bio filled out to get verified faster!
+        </p>
+
+        <div class="limit-actions-row">
+          <button mat-raised-button color="primary" (click)="loadStatus()" class="limit-btn">
+            <mat-icon>refresh</mat-icon>
+            <span>Refresh Status</span>
+          </button>
+          <button mat-button routerLink="/profile" class="profile-link-btn">
+            <mat-icon>edit</mat-icon>
+            <span>Complete My Profile</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- ── 0D. SPEED CONNECT PAUSED BY ADMIN CARD ── -->
+      <div class="state-card paused-card" *ngIf="!loadingStatus && statusInfo.isApproved && !statusInfo.speedChatEnabled">
+        <div class="speaker-icon-wrap">
+          <mat-icon class="huge-icon speaker">campaign</mat-icon>
+        </div>
+        <div class="status-badge-chip">
+          <mat-icon class="badge-icon">lock</mat-icon>
+          <span>Speed Connect is Temporarily Paused</span>
+        </div>
+
+        <h2 class="empty-title">Speed Connect Not Active Yet</h2>
+
+        <div class="announcement-quote-box">
+          <mat-icon class="quote-mark">format_quote</mat-icon>
+          <p class="quote-text">{{ statusInfo.speedChatDisabledMessage || 'Random matching is temporarily paused by administrator!' }}</p>
+          <span class="quote-author">— KIIT Connects Administration</span>
+        </div>
+
+        <div class="limit-actions-row">
+          <button mat-raised-button color="primary" (click)="loadStatus()" class="limit-btn">
+            <mat-icon>refresh</mat-icon>
+            <span>Refresh Status</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- ── SPEED CONNECT ACTIVE INTERFACE ── -->
+      <ng-container *ngIf="!loadingStatus && statusInfo.isApproved && statusInfo.speedChatEnabled">
 
       <!-- ── 1. SETUP / LOBBY STATE ────────────────────────────────────── -->
       <div class="lobby-card" *ngIf="state === 'IDLE'">
@@ -166,15 +272,28 @@ import { environment } from '../../../environments/environment';
                [class.theirs]="msg.senderId !== myUserId">
             <div class="bubble-content">
               <span class="bubble-sender" *ngIf="msg.senderId !== myUserId">{{ msg.senderTempName }}</span>
-              <p>{{ msg.content }}</p>
+              <div class="chat-img-wrap" *ngIf="msg.imageUrl">
+                <a [href]="msg.imageUrl" target="_blank" title="Click to view full photo">
+                  <img [src]="msg.imageUrl" class="chat-bubble-img" (load)="onImageLoaded()">
+                </a>
+              </div>
+              <p *ngIf="msg.content && msg.content !== '📷 Photo'">{{ msg.content }}</p>
               <span class="msg-time">{{ formatTime(msg.sentAt) }}</span>
             </div>
           </div>
           <div #bottomAnchor></div>
         </div>
 
-        <!-- Input Bar -->
+        <!-- Input Bar with Photo Sharing -->
         <div class="input-bar">
+          <input type="file" #photoUploadInput accept="image/*" (change)="onChatPhotoSelected($event)" style="display: none;">
+          <button mat-icon-button class="photo-attach-btn" (click)="photoUploadInput.click()"
+                  [disabled]="sendingPhoto || partnerDisconnected || !connected"
+                  title="Share an image in chat">
+            <mat-spinner diameter="20" *ngIf="sendingPhoto"></mat-spinner>
+            <mat-icon *ngIf="!sendingPhoto">add_photo_alternate</mat-icon>
+          </button>
+
           <mat-form-field appearance="outline" class="msg-field">
             <input matInput [formControl]="messageCtrl"
                    placeholder="Type a message... (Press Enter)"
@@ -187,6 +306,8 @@ import { environment } from '../../../environments/environment';
           </button>
         </div>
       </div>
+
+      </ng-container> <!-- End Active Speed Connect -->
 
     </div>
   `,
@@ -707,6 +828,255 @@ import { environment } from '../../../environments/environment';
       height: 48px !important;
       flex-shrink: 0;
     }
+
+    .photo-attach-btn {
+      color: #64748b !important;
+      width: 44px !important;
+      height: 44px !important;
+      flex-shrink: 0;
+    }
+
+    .photo-attach-btn:hover {
+      color: #ec4899 !important;
+    }
+
+    .chat-img-wrap {
+      max-width: 260px;
+      border-radius: 12px;
+      overflow: hidden;
+      margin-bottom: 6px;
+      background: #0f172a;
+    }
+
+    .chat-bubble-img {
+      width: 100%;
+      max-height: 240px;
+      object-fit: cover;
+      display: block;
+      border-radius: 12px;
+      transition: transform 0.2s;
+    }
+
+    .chat-bubble-img:hover {
+      transform: scale(1.02);
+    }
+
+    /* ── Verification & Pause State Cards ────────────────────────────── */
+    .state-card {
+      background: white;
+      border-radius: 28px;
+      padding: 44px 24px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      box-shadow: 0 12px 35px rgba(0, 0, 0, 0.06);
+      border: 1px solid #f1f5f9;
+      width: 100%;
+    }
+
+    .state-text {
+      color: #64748b;
+      font-weight: 500;
+      margin-top: 16px;
+    }
+
+    .review-card {
+      background: linear-gradient(180deg, #ffffff 0%, #fffdf5 100%);
+      border: 2px solid #fde68a;
+    }
+
+    .rejected-card {
+      background: linear-gradient(180deg, #ffffff 0%, #fef2f2 100%);
+      border: 2px solid #fecaca;
+    }
+
+    .paused-card {
+      background: linear-gradient(180deg, #ffffff 0%, #fffbf5 100%);
+      border: 2px solid #fde68a;
+    }
+
+    .review-icon-wrap, .speaker-icon-wrap {
+      width: 84px;
+      height: 84px;
+      border-radius: 50%;
+      background: #fef3c7;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 16px;
+    }
+
+    .rejected-icon-wrap {
+      width: 84px;
+      height: 84px;
+      border-radius: 50%;
+      background: #fee2e2;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 16px;
+    }
+
+    .huge-icon {
+      font-size: 44px;
+      width: 44px;
+      height: 44px;
+    }
+
+    .huge-icon.review-icon {
+      color: #d97706;
+    }
+
+    .huge-icon.rejected-icon {
+      color: #ef4444;
+    }
+
+    .huge-icon.speaker {
+      color: #d97706;
+    }
+
+    .status-badge-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: #fef3c7;
+      color: #b45309;
+      font-size: 0.78rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+      padding: 4px 12px;
+      border-radius: 9999px;
+      margin-bottom: 12px;
+    }
+
+    .badge-icon {
+      font-size: 14px;
+      width: 14px;
+      height: 14px;
+    }
+
+    .review-badge {
+      background: #fef3c7;
+      color: #b45309;
+    }
+
+    .rejected-badge {
+      background: #fee2e2;
+      color: #b91c1c;
+    }
+
+    .empty-title {
+      font-size: 1.5rem;
+      font-weight: 800;
+      color: #0f172a;
+      margin-bottom: 8px;
+    }
+
+    .empty-desc {
+      color: #64748b;
+      font-size: 0.95rem;
+      max-width: 360px;
+      margin-bottom: 24px;
+      line-height: 1.5;
+    }
+
+    .announcement-quote-box {
+      background: white;
+      border-left: 4px solid #f59e0b;
+      border-radius: 0 16px 16px 0;
+      padding: 16px 20px;
+      margin: 16px 0 20px;
+      text-align: left;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
+      width: 100%;
+    }
+
+    .rejection-reason-box {
+      border-left: 4px solid #ef4444 !important;
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+    }
+
+    .reason-content {
+      flex: 1;
+    }
+
+    .reason-label {
+      display: block;
+      font-size: 0.75rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      color: #dc2626;
+      margin-bottom: 4px;
+      letter-spacing: 0.5px;
+    }
+
+    .quote-mark {
+      font-size: 28px;
+      width: 28px;
+      height: 28px;
+      color: #fcd34d;
+      margin-bottom: 4px;
+    }
+
+    .rejection-reason-box .quote-mark {
+      color: #fca5a5;
+    }
+
+    .quote-text {
+      font-size: 1rem;
+      font-weight: 600;
+      color: #1e293b;
+      line-height: 1.5;
+      margin: 0 0 8px 0;
+      font-style: italic;
+    }
+
+    .quote-author {
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: #b45309;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+
+    .limit-actions-row {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      width: 100%;
+      max-width: 280px;
+    }
+
+    .limit-btn {
+      height: 46px !important;
+      border-radius: 14px !important;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .appeal-btn {
+      background: linear-gradient(135deg, #ef4444, #f43f5e) !important;
+      color: white !important;
+      height: 48px !important;
+      border-radius: 14px !important;
+      font-weight: 700 !important;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      box-shadow: 0 4px 14px rgba(239, 68, 68, 0.35);
+    }
+
+    .profile-link-btn {
+      color: #64748b !important;
+      font-weight: 600 !important;
+    }
   `]
 })
 export class SpeedChatComponent implements OnInit, OnDestroy, AfterViewChecked {
@@ -714,6 +1084,17 @@ export class SpeedChatComponent implements OnInit, OnDestroy, AfterViewChecked {
   @ViewChild('scrollContainer') scrollContainer!: ElementRef;
 
   state: 'IDLE' | 'SEARCHING' | 'CHATTING' = 'IDLE';
+
+  loadingStatus = true;
+  statusInfo: any = {
+    isApproved: true,
+    approvalStatus: 'APPROVED',
+    rejectionReason: '',
+    speedChatEnabled: true,
+    speedChatDisabledMessage: ''
+  };
+  sendingPhoto = false;
+  appealing = false;
 
   tempName = 'KIITian';
   age = 18;
@@ -745,7 +1126,75 @@ export class SpeedChatComponent implements OnInit, OnDestroy, AfterViewChecked {
   ngOnInit() {
     const user = this.auth.currentUserValue;
     this.myUserId = user?.userId ?? 0;
+    this.loadStatus();
     this.initStomp();
+  }
+
+  loadStatus() {
+    this.loadingStatus = true;
+    this.api.getSpeedChatStatus().subscribe({
+      next: (res) => {
+        this.loadingStatus = false;
+        this.statusInfo = res;
+        if (res.limitExceeded) {
+          this.limitExceeded = true;
+          this.limitExceededMessage = 'Ur daily speed connect limit exceed';
+        }
+      },
+      error: () => {
+        this.loadingStatus = false;
+      }
+    });
+  }
+
+  appealReview() {
+    if (this.appealing) return;
+    this.appealing = true;
+    this.api.appealReview().subscribe({
+      next: (res) => {
+        this.appealing = false;
+        this.snack.open(res.message || 'Appeal submitted successfully! Admin will review your profile.', 'OK', { duration: 5000 });
+        this.loadStatus();
+      },
+      error: (err) => {
+        this.appealing = false;
+        const msg = err.error?.message || 'Failed to submit appeal. Please try again.';
+        this.snack.open(msg, 'Close', { duration: 4000 });
+      }
+    });
+  }
+
+  onChatPhotoSelected(event: any) {
+    const file: File = event.target?.files?.[0];
+    if (!file || !this.sessionUuid) return;
+
+    if (!file.type.startsWith('image/')) {
+      this.snack.open('Please select an image file (PNG, JPG, etc.)', 'Dismiss', { duration: 3000 });
+      return;
+    }
+
+    if (file.size > 10 * 1024 * 1024) {
+      this.snack.open('Image size must be less than 10MB', 'Dismiss', { duration: 3000 });
+      return;
+    }
+
+    this.sendingPhoto = true;
+    this.api.speedChatSendPhoto(this.sessionUuid, file).subscribe({
+      next: () => {
+        this.sendingPhoto = false;
+        event.target.value = '';
+      },
+      error: (err) => {
+        this.sendingPhoto = false;
+        event.target.value = '';
+        const msg = err.error?.message || 'Failed to upload image. Please try again.';
+        this.snack.open(msg, 'Dismiss', { duration: 3000 });
+      }
+    });
+  }
+
+  onImageLoaded() {
+    this.scrollToBottom();
   }
 
   ngAfterViewChecked() {
@@ -801,6 +1250,19 @@ export class SpeedChatComponent implements OnInit, OnDestroy, AfterViewChecked {
 
     this.api.speedChatFindMatch(this.tempName.trim(), this.age).subscribe({
       next: (res) => {
+        if (res.status === 'REJECTED' || res.status === 'PENDING') {
+          this.state = 'IDLE';
+          this.statusInfo.isApproved = false;
+          this.statusInfo.approvalStatus = res.status;
+          this.statusInfo.rejectionReason = res.message?.replace(/^Profile rejected by admin:\s*/, '') || '';
+          return;
+        }
+        if (res.status === 'DISABLED') {
+          this.state = 'IDLE';
+          this.statusInfo.speedChatEnabled = false;
+          this.statusInfo.speedChatDisabledMessage = res.message || '';
+          return;
+        }
         if (res.status === 'LIMIT_EXCEEDED') {
           this.state = 'IDLE';
           this.limitExceeded = true;
@@ -817,6 +1279,9 @@ export class SpeedChatComponent implements OnInit, OnDestroy, AfterViewChecked {
       },
       error: (err) => {
         this.state = 'IDLE';
+        if (err.status === 403) {
+          this.loadStatus();
+        }
         const msg = err.error?.message || 'Failed to enter matching queue. Please try again.';
         this.snack.open(msg, 'Dismiss', { duration: 3000 });
       }
@@ -854,7 +1319,7 @@ export class SpeedChatComponent implements OnInit, OnDestroy, AfterViewChecked {
         this.partnerDisconnected = true;
         this.adminTerminated = true;
         this.snack.open('⚠️ This chat was terminated by the administrator.', 'OK', { duration: 6000 });
-      } else if (payload.content) {
+      } else if (payload.content || payload.imageUrl) {
         // Message received
         this.messages.push(payload);
         this.shouldScroll = true;

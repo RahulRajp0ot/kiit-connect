@@ -29,8 +29,11 @@ public class SpeedChatMessage {
     @Column(nullable = false)
     private String senderTempName;
 
-    @Column(nullable = false, length = 2000)
+    @Column(length = 2000)
     private String content;
+
+    @Column(length = 1000)
+    private String imageUrl;
 
     @Column(nullable = false)
     private LocalDateTime sentAt;

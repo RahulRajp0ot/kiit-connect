@@ -32,12 +32,18 @@ public class AdminSettingsService {
                     .matchingDisabledMessage("Campus matching is currently paused while initial students register! Stay tuned, we will go live soon! 🚀 — Admin")
                     .defaultDailySwipeLimit(5)
                     .defaultDailySpeedChatLimit(100)
+                    .speedChatEnabled(true)
+                    .speedChatDisabledMessage("Speed Connect (1-on-1 Chat) is temporarily paused by administrator for maintenance. Check back soon! ⚡")
                     .allowedDomains(defaultDomains)
                     .build();
             return settingsRepository.save(defaultSettings);
         });
         if (settings.getDefaultDailySpeedChatLimit() <= 0) {
             settings.setDefaultDailySpeedChatLimit(100);
+            settings = settingsRepository.save(settings);
+        }
+        if (settings.getSpeedChatDisabledMessage() == null || settings.getSpeedChatDisabledMessage().isBlank()) {
+            settings.setSpeedChatDisabledMessage("Speed Connect (1-on-1 Chat) is temporarily paused by administrator for maintenance. Check back soon! ⚡");
             settings = settingsRepository.save(settings);
         }
         return settings;
@@ -49,6 +55,16 @@ public class AdminSettingsService {
         settings.setMatchingEnabled(enabled);
         if (disabledMessage != null && !disabledMessage.isBlank()) {
             settings.setMatchingDisabledMessage(disabledMessage.trim());
+        }
+        return settingsRepository.save(settings);
+    }
+
+    @Transactional
+    public AppSettings updateSpeedChatToggle(boolean enabled, String disabledMessage) {
+        AppSettings settings = getSettings();
+        settings.setSpeedChatEnabled(enabled);
+        if (disabledMessage != null && !disabledMessage.isBlank()) {
+            settings.setSpeedChatDisabledMessage(disabledMessage.trim());
         }
         return settingsRepository.save(settings);
     }

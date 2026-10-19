@@ -12,7 +12,9 @@ import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
@@ -22,6 +24,11 @@ public class SpeedChatController {
 
     private final SpeedChatService speedChatService;
     private final UserRepository userRepository;
+
+    @GetMapping("/api/speed-chat/status")
+    public ResponseEntity<Map<String, Object>> getSpeedChatStatus(@AuthenticationPrincipal User user) {
+        return ResponseEntity.ok(speedChatService.getSpeedChatStatus(user));
+    }
 
     @PostMapping("/api/speed-chat/find")
     public ResponseEntity<SpeedChatMatchResponse> findMatch(
@@ -49,7 +56,17 @@ public class SpeedChatController {
             @AuthenticationPrincipal User user,
             @RequestBody Map<String, String> body) {
         String content = body.get("content");
-        return ResponseEntity.ok(speedChatService.sendMessage(sessionUuid, user, content));
+        String imageUrl = body.get("imageUrl");
+        return ResponseEntity.ok(speedChatService.sendMessage(sessionUuid, user, content, imageUrl));
+    }
+
+    @PostMapping("/api/speed-chat/{sessionUuid}/photo")
+    public ResponseEntity<SpeedChatMessageDTO> sendPhoto(
+            @PathVariable String sessionUuid,
+            @AuthenticationPrincipal User user,
+            @RequestParam("file") MultipartFile file,
+            @RequestParam(value = "content", required = false) String content) throws IOException {
+        return ResponseEntity.ok(speedChatService.sendPhoto(sessionUuid, user, file, content));
     }
 
     @PostMapping("/api/speed-chat/{sessionUuid}/leave")
@@ -72,8 +89,9 @@ public class SpeedChatController {
             @DestinationVariable String sessionUuid,
             @Payload Map<String, Object> payload) {
         Long senderId = Long.parseLong(payload.get("senderId").toString());
-        String content = payload.get("content").toString();
+        String content = payload.get("content") != null ? payload.get("content").toString() : "";
+        String imageUrl = payload.get("imageUrl") != null ? payload.get("imageUrl").toString() : null;
         User sender = userRepository.findById(senderId).orElseThrow();
-        speedChatService.sendMessage(sessionUuid, sender, content);
+        speedChatService.sendMessage(sessionUuid, sender, content, imageUrl);
     }
 }

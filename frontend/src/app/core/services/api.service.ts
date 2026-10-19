@@ -124,6 +124,9 @@ export class ApiService {
   adminUpdateMatching(enabled: boolean, message: string): Observable<any> {
     return this.http.put(`${this.base}/admin/settings/matching`, { enabled, message });
   }
+  adminUpdateSpeedChatToggle(enabled: boolean, message: string): Observable<any> {
+    return this.http.put(`${this.base}/admin/settings/speed-chat-toggle`, { enabled, message });
+  }
   adminUpdateDefaultLimit(limit: number): Observable<any> {
     return this.http.put(`${this.base}/admin/settings/limit`, { limit });
   }
@@ -151,14 +154,23 @@ export class ApiService {
   }
 
   // ── Speed Chat (Random Anonymous Matching) ─────────────
+  getSpeedChatStatus(): Observable<any> {
+    return this.http.get<any>(`${this.base}/speed-chat/status`);
+  }
   speedChatFindMatch(tempName: string, age: number): Observable<any> {
     return this.http.post<any>(`${this.base}/speed-chat/find`, { tempName, age });
   }
   speedChatCancel(): Observable<void> {
     return this.http.post<void>(`${this.base}/speed-chat/cancel`, {});
   }
-  speedChatSendMessage(sessionUuid: string, content: string): Observable<any> {
-    return this.http.post<any>(`${this.base}/speed-chat/${sessionUuid}/message`, { content });
+  speedChatSendMessage(sessionUuid: string, content: string, imageUrl?: string): Observable<any> {
+    return this.http.post<any>(`${this.base}/speed-chat/${sessionUuid}/message`, { content, imageUrl });
+  }
+  speedChatSendPhoto(sessionUuid: string, file: File, content?: string): Observable<any> {
+    const formData = new FormData();
+    formData.append('file', file);
+    if (content) formData.append('content', content);
+    return this.http.post<any>(`${this.base}/speed-chat/${sessionUuid}/photo`, formData);
   }
   speedChatLeave(sessionUuid: string): Observable<void> {
     return this.http.post<void>(`${this.base}/speed-chat/${sessionUuid}/leave`, {});

@@ -31,6 +31,13 @@ public class AppSettings {
     @Builder.Default
     private int defaultDailySpeedChatLimit = 100;
 
+    @Column(nullable = false)
+    @Builder.Default
+    private boolean speedChatEnabled = true;
+
+    @Column(length = 1000)
+    private String speedChatDisabledMessage;
+
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "allowed_email_domains", joinColumns = @JoinColumn(name = "settings_id"))
     @Column(name = "domain")

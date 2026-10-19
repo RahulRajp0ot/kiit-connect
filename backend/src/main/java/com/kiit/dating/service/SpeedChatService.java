@@ -1,8 +1,11 @@
 package com.kiit.dating.service;
 
+import com.cloudinary.Cloudinary;
+import com.cloudinary.utils.ObjectUtils;
 import com.kiit.dating.dto.SpeedChatAdminSessionDTO;
 import com.kiit.dating.dto.SpeedChatMatchResponse;
 import com.kiit.dating.dto.SpeedChatMessageDTO;
+import com.kiit.dating.entity.AppSettings;
 import com.kiit.dating.entity.SpeedChatMessage;
 import com.kiit.dating.entity.SpeedChatSession;
 import com.kiit.dating.entity.User;
@@ -13,11 +16,18 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -33,6 +43,13 @@ public class SpeedChatService {
     private final UserRepository userRepository;
     private final SimpMessagingTemplate messagingTemplate;
     private final AdminSettingsService adminSettingsService;
+    private final Cloudinary cloudinary;
+
+    @Value("${cloudinary.cloud-name:}")
+    private String cloudName;
+
+    @Value("${server.port:8088}")
+    private String serverPort;
 
     @Data
     @AllArgsConstructor
@@ -48,13 +65,37 @@ public class SpeedChatService {
 
     @Transactional
     public synchronized SpeedChatMatchResponse findMatch(User currentUser, String rawTempName, int rawAge) {
+        // Check 1: User Verification / Approval Status
+        if (currentUser.getApprovalStatus() != User.ApprovalStatus.APPROVED) {
+            String statusStr = currentUser.getApprovalStatus() == User.ApprovalStatus.REJECTED ? "REJECTED" : "PENDING";
+            String reason = currentUser.getRejectionReason() != null ? currentUser.getRejectionReason()
+                    : "Profile details or photo do not meet campus verification guidelines.";
+            return SpeedChatMatchResponse.builder()
+                    .status(statusStr)
+                    .message(currentUser.getApprovalStatus() == User.ApprovalStatus.REJECTED
+                            ? "Profile rejected by admin: " + reason
+                            : "Your campus profile is waiting for administrator review.")
+                    .build();
+        }
+
+        // Check 2: Speed Connect Active Switch
+        AppSettings settings = adminSettingsService.getSettings();
+        if (!settings.isSpeedChatEnabled()) {
+            return SpeedChatMatchResponse.builder()
+                    .status("DISABLED")
+                    .message(settings.getSpeedChatDisabledMessage() != null
+                            ? settings.getSpeedChatDisabledMessage()
+                            : "Speed Connect is temporarily paused by administrator.")
+                    .build();
+        }
+
         String tempName = (rawTempName == null || rawTempName.trim().isBlank()) ? "KIITian" : rawTempName.trim();
         int age = rawAge < 18 ? 18 : rawAge;
 
         // Check user's daily speed connect limit
         int limit = currentUser.getCustomDailySpeedChatLimit() != null && currentUser.getCustomDailySpeedChatLimit() > 0
                 ? currentUser.getCustomDailySpeedChatLimit()
-                : adminSettingsService.getSettings().getDefaultDailySpeedChatLimit();
+                : settings.getDefaultDailySpeedChatLimit();
         if (limit <= 0) limit = 100;
 
         long used = sessionRepository.countSessionsForUserSince(currentUser.getId(), LocalDateTime.now().minusHours(24));
@@ -147,12 +188,63 @@ public class SpeedChatService {
                 .build();
     }
 
+    public Map<String, Object> getSpeedChatStatus(User currentUser) {
+        AppSettings settings = adminSettingsService.getSettings();
+        int limit = currentUser.getCustomDailySpeedChatLimit() != null && currentUser.getCustomDailySpeedChatLimit() > 0
+                ? currentUser.getCustomDailySpeedChatLimit()
+                : settings.getDefaultDailySpeedChatLimit();
+        if (limit <= 0) limit = 100;
+
+        long used = sessionRepository.countSessionsForUserSince(currentUser.getId(), LocalDateTime.now().minusHours(24));
+        long remaining = Math.max(0, limit - used);
+
+        Map<String, Object> map = new HashMap<>();
+        map.put("approvalStatus", currentUser.getApprovalStatus() != null ? currentUser.getApprovalStatus().name() : "PENDING");
+        map.put("isApproved", currentUser.getApprovalStatus() == User.ApprovalStatus.APPROVED);
+        map.put("rejectionReason", currentUser.getRejectionReason());
+        map.put("speedChatEnabled", settings.isSpeedChatEnabled());
+        map.put("speedChatDisabledMessage", settings.getSpeedChatDisabledMessage());
+        map.put("dailyLimit", limit);
+        map.put("usedToday", used);
+        map.put("remainingToday", remaining);
+        map.put("limitExceeded", used >= limit);
+        return map;
+    }
+
     public synchronized void cancelWaiting(Long userId) {
         waitingQueue.removeIf(w -> w.getUserId().equals(userId));
     }
 
+    private String uploadImage(MultipartFile file) throws IOException {
+        if (file.isEmpty()) {
+            throw new IllegalArgumentException("File cannot be empty");
+        }
+
+        if (cloudName != null && !cloudName.isBlank() && !cloudName.equals("demo")) {
+            try {
+                Map<?, ?> uploadResult = cloudinary.uploader().upload(file.getBytes(),
+                        ObjectUtils.asMap("resource_type", "auto"));
+                return uploadResult.get("secure_url").toString();
+            } catch (Exception ignored) {}
+        }
+
+        Path uploadDir = Paths.get("uploads");
+        File dir = uploadDir.toFile();
+        if (!dir.exists()) dir.mkdirs();
+
+        String originalFilename = file.getOriginalFilename();
+        String extension = ".jpg";
+        if (originalFilename != null && originalFilename.contains(".")) {
+            extension = originalFilename.substring(originalFilename.lastIndexOf("."));
+        }
+        String filename = "speed_chat_" + UUID.randomUUID().toString() + extension;
+        Path targetPath = uploadDir.resolve(filename);
+        Files.write(targetPath, file.getBytes());
+        return "http://localhost:" + serverPort + "/uploads/" + filename;
+    }
+
     @Transactional
-    public SpeedChatMessageDTO sendMessage(String sessionUuid, User sender, String content) {
+    public SpeedChatMessageDTO sendMessage(String sessionUuid, User sender, String content, String imageUrl) {
         SpeedChatSession session = sessionRepository.findBySessionUuid(sessionUuid)
                 .orElseThrow(() -> new IllegalArgumentException("Session not found"));
 
@@ -167,11 +259,17 @@ public class SpeedChatService {
         String senderTempName = session.getUser1().getId().equals(sender.getId())
                 ? session.getUser1TempName() : session.getUser2TempName();
 
+        String trimmedContent = content != null ? content.trim() : null;
+        if ((trimmedContent == null || trimmedContent.isBlank()) && (imageUrl == null || imageUrl.isBlank())) {
+            throw new IllegalArgumentException("Message content or image cannot be empty");
+        }
+
         SpeedChatMessage msg = SpeedChatMessage.builder()
                 .session(session)
                 .sender(sender)
                 .senderTempName(senderTempName)
-                .content(content.trim())
+                .content(trimmedContent)
+                .imageUrl(imageUrl)
                 .sentAt(LocalDateTime.now())
                 .build();
 
@@ -183,12 +281,23 @@ public class SpeedChatService {
                 .senderId(sender.getId())
                 .senderTempName(senderTempName)
                 .content(msg.getContent())
+                .imageUrl(msg.getImageUrl())
                 .sentAt(msg.getSentAt())
                 .build();
 
         // Broadcast to both users in the session
         messagingTemplate.convertAndSend("/topic/speed-chat/session/" + sessionUuid, dto);
         return dto;
+    }
+
+    public SpeedChatMessageDTO sendMessage(String sessionUuid, User sender, String content) {
+        return sendMessage(sessionUuid, sender, content, null);
+    }
+
+    @Transactional
+    public SpeedChatMessageDTO sendPhoto(String sessionUuid, User sender, MultipartFile file, String caption) throws IOException {
+        String imageUrl = uploadImage(file);
+        return sendMessage(sessionUuid, sender, caption, imageUrl);
     }
 
     @Transactional
@@ -289,6 +398,7 @@ public class SpeedChatService {
                         .senderId(m.getSender().getId())
                         .senderTempName(m.getSenderTempName())
                         .content(m.getContent())
+                        .imageUrl(m.getImageUrl())
                         .sentAt(m.getSentAt())
                         .build())
                 .toList();

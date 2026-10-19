@@ -13,5 +13,6 @@ public class SpeedChatMessageDTO {
     private Long senderId;
     private String senderTempName;
     private String content;
+    private String imageUrl;
     private LocalDateTime sentAt;
 }
