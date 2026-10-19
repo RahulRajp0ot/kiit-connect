@@ -126,7 +126,7 @@ import { AuthService } from '../../core/services/auth.service';
 
             <!-- Post Photo -->
             <div class="post-photo-wrap" *ngIf="post.photoUrl">
-              <img [src]="post.photoUrl" class="post-img" loading="lazy" (error)="onPostImgError($event)">
+              <img [src]="getPostPhoto(post.photoUrl)" class="post-img" loading="lazy" (error)="onPostImgError($event)">
             </div>
 
             <!-- Interaction Bar -->
@@ -648,8 +648,8 @@ export class FeedComponent implements OnInit {
   onPhotoSelected(event: any) {
     const file = event.target.files?.[0];
     if (file) {
-      if (file.size > 10 * 1024 * 1024) {
-        this.snack.open('Photo is too large! Please select an image under 10MB.', 'Dismiss', { duration: 3000 });
+      if (file.size > 25 * 1024 * 1024) {
+        this.snack.open('Photo is too large! Please select an image under 25MB.', 'Dismiss', { duration: 3000 });
         return;
       }
       this.selectedFile = file;
@@ -659,6 +659,14 @@ export class FeedComponent implements OnInit {
       };
       reader.readAsDataURL(file);
     }
+  }
+
+  getPostPhoto(url?: string): string {
+    if (!url) return '';
+    if (typeof window !== 'undefined' && url.startsWith('http://localhost:8088') && window.location.hostname !== 'localhost') {
+      return url.replace('http://localhost:8088', `${window.location.protocol}//${window.location.hostname}:8088`);
+    }
+    return url;
   }
 
   removeSelectedPhoto() {

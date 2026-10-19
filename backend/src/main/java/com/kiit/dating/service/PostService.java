@@ -8,6 +8,7 @@ import com.kiit.dating.entity.PostLike;
 import com.kiit.dating.entity.User;
 import com.kiit.dating.repository.PostLikeRepository;
 import com.kiit.dating.repository.PostRepository;
+import com.kiit.dating.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -32,6 +33,7 @@ public class PostService {
 
     private final PostRepository postRepository;
     private final PostLikeRepository postLikeRepository;
+    private final UserRepository userRepository;
     private final Cloudinary cloudinary;
 
     @Value("${cloudinary.cloud-name:}")
@@ -40,6 +42,7 @@ public class PostService {
     @Value("${server.port:8088}")
     private String serverPort;
 
+    @Transactional(readOnly = true)
     public List<PostDTO> getAllPosts(User currentUser) {
         return postRepository.findAllByOrderByCreatedAtDesc().stream()
                 .map(p -> toDTO(p, currentUser))
@@ -47,7 +50,10 @@ public class PostService {
     }
 
     @Transactional
-    public PostDTO createPost(User author, String quote, MultipartFile file) throws IOException {
+    public PostDTO createPost(User currentUser, String quote, MultipartFile file) throws IOException {
+        User author = userRepository.findById(currentUser.getId())
+                .orElse(currentUser);
+
         String photoUrl = null;
         if (file != null && !file.isEmpty()) {
             photoUrl = uploadImage(file);
@@ -144,9 +150,11 @@ public class PostService {
         );
 
         String avatar = null;
-        if (post.getAuthor().getPhotoUrls() != null && !post.getAuthor().getPhotoUrls().isEmpty()) {
-            avatar = post.getAuthor().getPhotoUrls().get(0);
-        }
+        try {
+            if (post.getAuthor().getPhotoUrls() != null && !post.getAuthor().getPhotoUrls().isEmpty()) {
+                avatar = post.getAuthor().getPhotoUrls().get(0);
+            }
+        } catch (Exception ignored) {}
 
         return PostDTO.builder()
                 .id(post.getId())

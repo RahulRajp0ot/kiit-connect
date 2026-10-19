@@ -28,7 +28,7 @@ public class PostController {
     @PostMapping
     public ResponseEntity<PostDTO> createPost(
             @AuthenticationPrincipal User currentUser,
-            @RequestParam("quote") String quote,
+            @RequestParam(value = "quote", required = false, defaultValue = "") String quote,
             @RequestParam(value = "file", required = false) MultipartFile file) throws IOException {
         return ResponseEntity.ok(postService.createPost(currentUser, quote, file));
     }

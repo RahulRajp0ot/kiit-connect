@@ -206,9 +206,9 @@ export class ApiService {
   getPosts(): Observable<any[]> {
     return this.http.get<any[]>(`${this.base}/posts`);
   }
-  createPost(quote: string, file?: File): Observable<any> {
+  createPost(quote?: string, file?: File): Observable<any> {
     const formData = new FormData();
-    formData.append('quote', quote);
+    formData.append('quote', quote || '');
     if (file) {
       formData.append('file', file);
     }
