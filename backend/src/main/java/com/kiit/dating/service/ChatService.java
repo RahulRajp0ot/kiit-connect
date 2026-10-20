@@ -80,8 +80,8 @@ public class ChatService {
         User receiver = match.getUserA().getId().equals(senderId)
                 ? match.getUserB() : match.getUserA();
 
-        String trimmedContent = content != null ? content.trim() : null;
-        if ((trimmedContent == null || trimmedContent.isBlank()) && (imageUrl == null || imageUrl.isBlank())) {
+        String trimmedContent = (content != null && !content.isBlank()) ? content.trim() : null;
+        if (trimmedContent == null && (imageUrl == null || imageUrl.isBlank())) {
             throw new IllegalArgumentException("Message content or image cannot be empty");
         }
 
@@ -90,7 +90,7 @@ public class ChatService {
                         .match(match)
                         .sender(sender)
                         .receiver(receiver)
-                        .content(trimmedContent)
+                        .content(trimmedContent != null ? trimmedContent : "")
                         .imageUrl(imageUrl)
                         .deletedForUsers(false)
                         .build()
@@ -258,16 +258,17 @@ public class ChatService {
     // ── Helpers ───────────────────────────────────────────────────────────
 
     public String uploadImage(MultipartFile file) throws IOException {
-        if (cloudName != null && !cloudName.isBlank() && !cloudName.equals("your_cloud_name")) {
+        if (file == null || file.isEmpty()) {
+            throw new IllegalArgumentException("File cannot be empty");
+        }
+
+        if (cloudName != null && !cloudName.isBlank() && !cloudName.equals("your_cloud_name") && !cloudName.equals("demo")) {
             try {
-                Map<String, Object> uploadResult = cloudinary.uploader().upload(
-                        file.getBytes(),
-                        ObjectUtils.asMap(
-                                "folder", "kiit-dating/chat",
-                                "transformation", "q_auto,f_auto,w_1200"
-                        )
-                );
-                return (String) uploadResult.get("secure_url");
+                Map<?, ?> uploadResult = cloudinary.uploader().upload(file.getBytes(),
+                        ObjectUtils.asMap("resource_type", "auto"));
+                if (uploadResult != null && uploadResult.get("secure_url") != null) {
+                    return uploadResult.get("secure_url").toString();
+                }
             } catch (Exception e) {
                 log.warn("Cloudinary upload failed for chat image, falling back to local: {}", e.getMessage());
             }
@@ -285,7 +286,7 @@ public class ChatService {
         String filename = "chat_" + UUID.randomUUID().toString() + extension;
         Path targetPath = uploadDir.resolve(filename);
         Files.write(targetPath, file.getBytes());
-        return "http://localhost:" + serverPort + "/uploads/" + filename;
+        return "/uploads/" + filename;
     }
 
     private MessageDTO toDTO(Message msg) {

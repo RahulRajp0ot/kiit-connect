@@ -78,11 +78,11 @@ import { environment } from '../../../environments/environment';
             <ng-container *ngIf="!msg.deletedForUsers">
               <!-- Attached Photo -->
               <div class="chat-photo-wrap" *ngIf="msg.imageUrl" (click)="openImagePreview(msg.imageUrl)">
-                <img [src]="msg.imageUrl" alt="Shared photo" class="chat-photo-img">
+                <img [src]="resolvePhotoUrl(msg.imageUrl)" alt="Shared photo" class="chat-photo-img">
               </div>
 
               <!-- Text Content -->
-              <p *ngIf="msg.content">{{msg.content}}</p>
+              <p *ngIf="msg.content && msg.content.trim()">{{msg.content}}</p>
             </ng-container>
 
             <span class="msg-time">{{formatTime(msg.sentAt)}}</span>
@@ -682,9 +682,11 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
             this.shouldScroll = true;
           }
         },
-        error: () => {
+        error: (err: any) => {
           this.uploadingPhoto = false;
-          this.snack.open('Failed to send photo. Please try again.', 'OK', { duration: 3000 });
+          console.error('Failed to send photo error:', err);
+          const serverError = err?.error?.message || err?.error || err?.message || 'Failed to send photo. Please try again.';
+          this.snack.open(serverError, 'OK', { duration: 4000 });
         }
       });
       return;
@@ -742,7 +744,22 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
   }
 
   openImagePreview(url: string) {
-    this.lightboxUrl = url;
+    this.lightboxUrl = this.resolvePhotoUrl(url);
+  }
+
+  resolvePhotoUrl(url?: string): string {
+    if (!url) return '';
+    if (url.startsWith('data:') || url.startsWith('blob:')) return url;
+    if (url.startsWith('http://') || url.startsWith('https://')) {
+      if (typeof window !== 'undefined' && url.includes('localhost:8088') && window.location.hostname !== 'localhost') {
+        const backendOrigin = environment.apiUrl.replace(/\/api\/?$/, '');
+        return url.replace(/http:\/\/localhost:8088/, backendOrigin);
+      }
+      return url;
+    }
+    const backendOrigin = environment.apiUrl.replace(/\/api\/?$/, '');
+    const cleanPath = url.startsWith('/') ? url : `/${url}`;
+    return `${backendOrigin}${cleanPath}`;
   }
 
   getPartnerAvatar(url?: string): string {

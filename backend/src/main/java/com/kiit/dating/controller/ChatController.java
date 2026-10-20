@@ -49,11 +49,21 @@ public class ChatController {
             @PathVariable Long matchId,
             @AuthenticationPrincipal User currentUser,
             @RequestParam("file") org.springframework.web.multipart.MultipartFile file,
-            @RequestParam(value = "caption", required = false) String caption) throws java.io.IOException {
+            @RequestParam(value = "caption", required = false) String caption,
+            @RequestParam(value = "content", required = false) String content) throws java.io.IOException {
+        if (currentUser == null) {
+            throw new org.springframework.security.access.AccessDeniedException("Authentication required to send photo");
+        }
         if (file == null || file.isEmpty()) {
             throw new IllegalArgumentException("Image file cannot be empty");
         }
-        return ResponseEntity.ok(chatService.sendPhoto(matchId, currentUser.getId(), file, caption));
+        String text = (caption != null && !caption.isBlank()) ? caption.trim() : (content != null && !content.isBlank() ? content.trim() : null);
+        try {
+            return ResponseEntity.ok(chatService.sendPhoto(matchId, currentUser.getId(), file, text));
+        } catch (Exception e) {
+            log.error("Failed to send chat photo for matchId: {}", matchId, e);
+            throw e;
+        }
     }
 
     // Delete message for everyone (Soft deletes in DB, masks on student screens, preserves for Admin audit!)

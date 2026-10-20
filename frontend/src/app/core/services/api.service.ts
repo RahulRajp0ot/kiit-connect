@@ -99,7 +99,10 @@ export class ApiService {
   sendChatPhoto(matchId: number, file: File, caption?: string): Observable<any> {
     const formData = new FormData();
     formData.append('file', file);
-    if (caption) formData.append('caption', caption);
+    if (caption && caption.trim()) {
+      formData.append('caption', caption.trim());
+      formData.append('content', caption.trim());
+    }
     return this.http.post<any>(`${this.base}/chat/${matchId}/photo`, formData);
   }
   deleteChatMessageForEveryone(matchId: number, messageId: number): Observable<any> {

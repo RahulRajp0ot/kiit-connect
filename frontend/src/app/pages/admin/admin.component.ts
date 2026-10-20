@@ -817,8 +817,8 @@ import { AuthService } from '../../core/services/auth.service';
                     <span class="t-msg-time">{{ formatTime(m.sentAt) }}</span>
                   </div>
                   <div class="t-msg-img-wrap" *ngIf="m.imageUrl">
-                    <a [href]="m.imageUrl" target="_blank" title="Click to view full photo">
-                      <img [src]="m.imageUrl" class="t-msg-img">
+                    <a [href]="resolvePhotoUrl(m.imageUrl)" target="_blank" title="Click to view full photo">
+                      <img [src]="resolvePhotoUrl(m.imageUrl)" class="t-msg-img">
                     </a>
                   </div>
                   <div class="t-msg-content" *ngIf="m.content">{{ m.content }}</div>
@@ -873,8 +873,8 @@ import { AuthService } from '../../core/services/auth.service';
 
                   <!-- Original Photo (Preserved for Admin!) -->
                   <div class="t-msg-img-wrap" *ngIf="m.imageUrl" style="margin-bottom: 6px;">
-                    <a [href]="m.imageUrl" target="_blank" title="Click to view original photo">
-                      <img [src]="m.imageUrl" class="t-msg-img" style="max-height: 200px; border-radius: 8px;">
+                    <a [href]="resolvePhotoUrl(m.imageUrl)" target="_blank" title="Click to view original photo">
+                      <img [src]="resolvePhotoUrl(m.imageUrl)" class="t-msg-img" style="max-height: 200px; border-radius: 8px;">
                     </a>
                   </div>
 
@@ -2857,7 +2857,24 @@ export class AdminComponent implements OnInit {
 
   getPhoto(user: any): string {
     const photos = user.photoUrls || user.photos;
-    if (photos && photos.length > 0 && photos[0]) return photos[0];
+    if (photos && photos.length > 0 && photos[0]) return this.resolvePhotoUrl(photos[0]);
     return `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name || 'User')}&background=4338ca&color=fff&size=80`;
+  }
+
+  resolvePhotoUrl(url?: string): string {
+    if (!url) return '';
+    if (url.startsWith('data:') || url.startsWith('blob:')) return url;
+    if (url.startsWith('http://') || url.startsWith('https://')) {
+      if (typeof window !== 'undefined' && url.includes('localhost:8088') && window.location.hostname !== 'localhost') {
+        const backendOrigin = window.location.protocol + '//' + window.location.hostname;
+        return url.replace(/http:\/\/localhost:8088/, backendOrigin);
+      }
+      return url;
+    }
+    const cleanPath = url.startsWith('/') ? url : `/${url}`;
+    if (typeof window !== 'undefined') {
+      return `${window.location.protocol}//${window.location.hostname}${cleanPath}`;
+    }
+    return cleanPath;
   }
 }

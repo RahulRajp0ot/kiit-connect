@@ -5,6 +5,7 @@ import com.kiit.dating.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.time.LocalDate;
@@ -16,9 +17,24 @@ public class DataInitializer implements CommandLineRunner {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final JdbcTemplate jdbcTemplate;
 
     @Override
     public void run(String... args) {
+        // Ensure database columns and nullability are relaxed for match chat
+        try {
+            jdbcTemplate.execute("ALTER TABLE messages ALTER COLUMN content DROP NOT NULL");
+        } catch (Exception ignored) {}
+        try {
+            jdbcTemplate.execute("ALTER TABLE messages ADD COLUMN IF NOT EXISTS image_url VARCHAR(1000)");
+        } catch (Exception ignored) {}
+        try {
+            jdbcTemplate.execute("ALTER TABLE messages ADD COLUMN IF NOT EXISTS deleted_for_users BOOLEAN DEFAULT FALSE");
+        } catch (Exception ignored) {}
+        try {
+            jdbcTemplate.execute("ALTER TABLE messages ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP");
+        } catch (Exception ignored) {}
+
         // ── 1. Admin Account ──────────────────────────────────────────────────
         seedUserIfNotExists(User.builder()
                 .name("KIIT Admin")
