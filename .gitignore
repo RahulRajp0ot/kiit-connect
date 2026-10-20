@@ -5,3 +5,6 @@ Thumbs.db
 *.env.local
 .vscode/
 .idea/
+target/
+backend/target/
+frontend/dist/

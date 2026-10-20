@@ -24,7 +24,7 @@ public interface LikeRepository extends JpaRepository<Like, Long> {
     void deleteAllByUserId(@Param("userId") Long userId);
 
     @Modifying
-    @Query("DELETE FROM Like l WHERE (l.fromUser = :u1 AND l.toUser = :u2) OR (l.fromUser = :u2 AND l.toUser = :u1)")
-    void deleteLikesBetween(@Param("u1") User u1, @Param("u2") User u2);
+    @Query("DELETE FROM Like l WHERE (l.fromUser.id = :u1Id AND l.toUser.id = :u2Id) OR (l.fromUser.id = :u2Id AND l.toUser.id = :u1Id)")
+    void deleteLikesBetween(@Param("u1Id") Long u1Id, @Param("u2Id") Long u2Id);
 }
 

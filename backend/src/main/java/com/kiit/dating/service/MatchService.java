@@ -76,7 +76,7 @@ public class MatchService {
         matchRepository.save(match);
 
         // Remove mutual likes so they don't stay in liked state
-        likeRepository.deleteLikesBetween(match.getUserA(), match.getUserB());
+        likeRepository.deleteLikesBetween(match.getUserA().getId(), match.getUserB().getId());
 
         // Notify active match chat in real-time via WebSocket
         try {

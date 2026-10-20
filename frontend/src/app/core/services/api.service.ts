@@ -99,26 +99,13 @@ export class ApiService {
   sendChatPhoto(matchId: number, file: File, caption?: string): Observable<any> {
     const formData = new FormData();
     formData.append('file', file);
+    formData.append('photo', file);
+    formData.append('image', file);
     if (caption && caption.trim()) {
       formData.append('caption', caption.trim());
       formData.append('content', caption.trim());
     }
-    // Attempt direct chat photo upload; if 404 (due to live backend redeployment delay), fall back to profile upload + sendChatMessage
-    return this.http.post<any>(`${this.base}/chat/${matchId}/photo`, formData).pipe(
-      catchError((err) => {
-        if (err?.status === 404) {
-          const form = new FormData();
-          form.append('file', file);
-          return this.http.post<any>(`${this.base}/profile/me/photo`, form).pipe(
-            switchMap((res: any) => {
-              const photoUrl = res?.photoUrl || res?.url || res;
-              return this.sendChatMessage(matchId, caption || '', photoUrl);
-            })
-          );
-        }
-        return throwError(() => err);
-      })
-    );
+    return this.http.post<any>(`${this.base}/chat/${matchId}/photo`, formData);
   }
   deleteChatMessageForEveryone(matchId: number, messageId: number): Observable<any> {
     return this.http.delete<any>(`${this.base}/chat/${matchId}/message/${messageId}`);

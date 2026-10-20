@@ -34,6 +34,9 @@ public class DataInitializer implements CommandLineRunner {
         try {
             jdbcTemplate.execute("ALTER TABLE messages ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP");
         } catch (Exception ignored) {}
+        try {
+            jdbcTemplate.execute("ALTER TABLE matches DROP CONSTRAINT IF EXISTS matches_status_check");
+        } catch (Exception ignored) {}
 
         // ── 1. Admin Account ──────────────────────────────────────────────────
         seedUserIfNotExists(User.builder()

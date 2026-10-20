@@ -48,18 +48,21 @@ public class ChatController {
     public ResponseEntity<MessageDTO> sendChatPhoto(
             @PathVariable Long matchId,
             @AuthenticationPrincipal User currentUser,
-            @RequestParam("file") org.springframework.web.multipart.MultipartFile file,
+            @RequestParam(value = "file", required = false) org.springframework.web.multipart.MultipartFile file,
+            @RequestParam(value = "photo", required = false) org.springframework.web.multipart.MultipartFile photo,
+            @RequestParam(value = "image", required = false) org.springframework.web.multipart.MultipartFile image,
             @RequestParam(value = "caption", required = false) String caption,
             @RequestParam(value = "content", required = false) String content) throws java.io.IOException {
         if (currentUser == null) {
             throw new org.springframework.security.access.AccessDeniedException("Authentication required to send photo");
         }
-        if (file == null || file.isEmpty()) {
+        org.springframework.web.multipart.MultipartFile uploadFile = file != null ? file : (photo != null ? photo : image);
+        if (uploadFile == null || uploadFile.isEmpty()) {
             throw new IllegalArgumentException("Image file cannot be empty");
         }
         String text = (caption != null && !caption.isBlank()) ? caption.trim() : (content != null && !content.isBlank() ? content.trim() : null);
         try {
-            return ResponseEntity.ok(chatService.sendPhoto(matchId, currentUser.getId(), file, text));
+            return ResponseEntity.ok(chatService.sendPhoto(matchId, currentUser.getId(), uploadFile, text));
         } catch (Exception e) {
             log.error("Failed to send chat photo for matchId: {}", matchId, e);
             throw e;
