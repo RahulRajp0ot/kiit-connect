@@ -51,6 +51,11 @@ import { AuthService } from '../../core/services/auth.service';
             <span>Speed Connect 24h Audit</span>
             <span class="audit-counter-badge" *ngIf="speedChatSessions.length > 0">{{ speedChatSessions.length }}</span>
           </button>
+          <button class="admin-tab-btn" [class.active]="activeTab === 'matchedChats'" (click)="switchToMatchedChats()">
+            <mat-icon>forum</mat-icon>
+            <span>💬 Matched Chats Audit</span>
+            <span class="audit-counter-badge" *ngIf="matchedChats.length > 0" style="background: #3b82f6;">{{ matchedChats.length }}</span>
+          </button>
         </div>
 
         <!-- TAB 1: STUDENTS & CAMPUS CONTROLS -->
@@ -617,6 +622,95 @@ import { AuthService } from '../../core/services/auth.service';
           </mat-card>
         </div>
 
+        <!-- ── TAB 4: MATCHED CHATS LIVE AUDIT (Retention & Delete-for-everyone Bypass) ── -->
+        <div class="matched-chats-audit-section" *ngIf="activeTab === 'matchedChats'">
+          <mat-card class="table-card">
+            <div class="table-card-header">
+              <div>
+                <h2 class="table-title">💬 Matched Students Live Chat Audit</h2>
+                <p class="table-subtitle">
+                  Real-time unmasked chat logs between matched students. Original messages and photos remain 100% visible here even if students click "Delete for everyone".
+                </p>
+              </div>
+              <div class="header-actions-group" style="display: flex; gap: 8px;">
+                <button mat-stroked-button (click)="purgeOldMessages()" [disabled]="purgingChat" class="purge-btn" style="color: #ef4444; border-color: #fca5a5;">
+                  <mat-icon>auto_delete</mat-icon>
+                  <span>Purge >10 Days</span>
+                </button>
+                <button mat-stroked-button (click)="loadMatchedChats()" [disabled]="loadingMatchedChats" class="refresh-btn">
+                  <mat-icon>refresh</mat-icon>
+                  <span>Refresh Chats</span>
+                </button>
+              </div>
+            </div>
+
+            <div class="loading-wrap" *ngIf="loadingMatchedChats">
+              <mat-spinner diameter="36"></mat-spinner>
+            </div>
+
+            <div class="empty-audit" *ngIf="!loadingMatchedChats && matchedChats.length === 0">
+              <mat-icon class="empty-audit-icon">forum</mat-icon>
+              <h3>No matched conversations found</h3>
+              <p>When approved matched students chat with each other, their live conversation audit will appear here.</p>
+            </div>
+
+            <div class="table-responsive" *ngIf="!loadingMatchedChats && matchedChats.length > 0">
+              <table class="custom-table audit-table">
+                <thead>
+                  <tr>
+                    <th>Match & Students</th>
+                    <th>Last Activity</th>
+                    <th>Message Stats</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let c of matchedChats">
+                    <td>
+                      <div class="matched-pair-cell" style="display: flex; align-items: center; gap: 10px;">
+                        <img [src]="getPhoto({ photoUrls: [c.userAPhoto], name: c.userAName })" class="user-avatar-img" style="width: 36px; height: 36px;">
+                        <div>
+                          <strong style="color: #0f172a;">{{ c.userAName }}</strong>
+                          <div style="font-size: 0.75rem; color: #64748b;">{{ c.userAEmail }}</div>
+                        </div>
+                        <span style="color: #ff4b72; font-weight: 800; font-size: 1.1rem; margin: 0 4px;">💞</span>
+                        <img [src]="getPhoto({ photoUrls: [c.userBPhoto], name: c.userBName })" class="user-avatar-img" style="width: 36px; height: 36px;">
+                        <div>
+                          <strong style="color: #0f172a;">{{ c.userBName }}</strong>
+                          <div style="font-size: 0.75rem; color: #64748b;">{{ c.userBEmail }}</div>
+                        </div>
+                      </div>
+                    </td>
+                    <td>
+                      <div style="font-size: 0.85rem; color: #334155; font-weight: 600;">{{ c.lastMessageSnippet }}</div>
+                      <div style="font-size: 0.72rem; color: #94a3b8;">{{ formatTime(c.lastMessageTime) }}</div>
+                    </td>
+                    <td>
+                      <div style="display: flex; flex-direction: column; gap: 4px;">
+                        <span class="msg-count-pill" style="align-self: flex-start;">{{ c.messageCount }} msgs</span>
+                        <span *ngIf="c.deletedCount > 0" style="font-size: 0.72rem; color: #ef4444; font-weight: 700;">
+                          ⚠️ {{ c.deletedCount }} deleted for everyone
+                        </span>
+                      </div>
+                    </td>
+                    <td>
+                      <div class="audit-actions-row">
+                        <button mat-flat-button class="view-transcript-btn" (click)="openMatchChatModal(c)">
+                          <mat-icon>chat</mat-icon>
+                          <span>Audit</span>
+                        </button>
+                        <button mat-icon-button (click)="clearMatchChat(c)" title="Clear All Chat Messages in this Match" style="color: #ef4444;">
+                          <mat-icon>delete_sweep</mat-icon>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </mat-card>
+        </div>
+
         <!-- ── MODAL 1: EDIT STUDENT PROFILE (About & Photos) ──────────── -->
         <div class="admin-modal-backdrop" *ngIf="editingUser" (click)="editingUser = null">
           <div class="admin-modal-card" (click)="$event.stopPropagation()">
@@ -731,6 +825,68 @@ import { AuthService } from '../../core/services/auth.service';
 
             <div class="modal-footer">
               <button mat-button (click)="transcriptSession = null">Close</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── MODAL 3: MATCH CHAT UNMASKED AUDIT MODAL ────────────────── -->
+        <div class="admin-modal-backdrop" *ngIf="activeMatchChat" (click)="activeMatchChat = null">
+          <div class="admin-modal-card transcript-modal" (click)="$event.stopPropagation()" style="max-width: 680px;">
+            <div class="modal-header">
+              <div>
+                <h3 class="modal-title">💬 Matched Chat Audit (Unmasked)</h3>
+                <span class="modal-subtitle">
+                  {{ activeMatchChat.userAName }} ⟷ {{ activeMatchChat.userBName }} (Match #{{ activeMatchChat.matchId }})
+                </span>
+              </div>
+              <button mat-icon-button (click)="activeMatchChat = null">
+                <mat-icon>close</mat-icon>
+              </button>
+            </div>
+
+            <div class="modal-body transcript-body">
+              <div class="loading-wrap" *ngIf="loadingMatchMessages">
+                <mat-spinner diameter="32"></mat-spinner>
+              </div>
+
+              <div class="empty-transcript" *ngIf="!loadingMatchMessages && matchChatMessages.length === 0">
+                <p>No messages in this conversation yet.</p>
+              </div>
+
+              <div class="transcript-bubbles-list" *ngIf="!loadingMatchMessages && matchChatMessages.length > 0">
+                <div class="transcript-msg" *ngFor="let m of matchChatMessages" [style.borderLeft]="m.deletedForUsers ? '4px solid #f59e0b' : 'none'">
+                  <div class="t-msg-header">
+                    <span class="t-sender-handle" style="display: flex; align-items: center; gap: 6px;">
+                      <strong>{{ m.senderName }}</strong> ({{ m.senderEmail }})
+                    </span>
+                    <span class="t-msg-time">{{ formatTime(m.sentAt) }}</span>
+                  </div>
+
+                  <!-- Deleted-for-everyone warning badge: Shown only if student deleted it! -->
+                  <div *ngIf="m.deletedForUsers" style="margin: 4px 0 8px; padding: 4px 8px; background: #fef3c7; color: #b45309; border-radius: 6px; font-size: 0.76rem; font-weight: 700; display: inline-flex; align-items: center; gap: 4px;">
+                    <mat-icon style="font-size: 14px; width: 14px; height: 14px;">warning</mat-icon>
+                    <span>Student deleted this message for everyone at {{ formatTime(m.deletedAt) }}. (Preserved below for Admin audit)</span>
+                  </div>
+
+                  <!-- Original Photo (Preserved for Admin!) -->
+                  <div class="t-msg-img-wrap" *ngIf="m.imageUrl" style="margin-bottom: 6px;">
+                    <a [href]="m.imageUrl" target="_blank" title="Click to view original photo">
+                      <img [src]="m.imageUrl" class="t-msg-img" style="max-height: 200px; border-radius: 8px;">
+                    </a>
+                  </div>
+
+                  <!-- Original Text Content -->
+                  <div class="t-msg-content" *ngIf="m.content" [style.color]="m.deletedForUsers ? '#0f172a' : 'inherit'">{{ m.content }}</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="modal-footer" style="display: flex; justify-content: space-between;">
+              <button mat-stroked-button color="warn" (click)="clearMatchChat(activeMatchChat)">
+                <mat-icon>delete_forever</mat-icon>
+                <span>Clear This Conversation</span>
+              </button>
+              <button mat-button (click)="activeMatchChat = null">Close</button>
             </div>
           </div>
         </div>
@@ -2147,9 +2303,17 @@ export class AdminComponent implements OnInit {
 
   newDomain = '';
 
-  activeTab: 'students' | 'pendingMatches' | 'speedChat' = 'students';
+  activeTab: 'students' | 'pendingMatches' | 'speedChat' | 'matchedChats' = 'students';
   speedChatSessions: any[] = [];
   loadingSpeedChat = false;
+
+  // Matched Chats Live Audit
+  matchedChats: any[] = [];
+  loadingMatchedChats = false;
+  activeMatchChat: any = null;
+  matchChatMessages: any[] = [];
+  loadingMatchMessages = false;
+  purgingChat = false;
 
   // Match Approvals
   pendingMatches: any[] = [];
@@ -2171,6 +2335,7 @@ export class AdminComponent implements OnInit {
   ngOnInit() {
     this.loadAllData();
     this.loadPendingMatches();
+    this.loadMatchedChats();
   }
 
   loadAllData() {
@@ -2492,6 +2657,11 @@ export class AdminComponent implements OnInit {
     this.loadSpeedChatSessions();
   }
 
+  switchToMatchedChats() {
+    this.activeTab = 'matchedChats';
+    this.loadMatchedChats();
+  }
+
   loadSpeedChatSessions() {
     this.loadingSpeedChat = true;
     this.api.adminGetSpeedChatSessions().subscribe({
@@ -2603,6 +2773,74 @@ export class AdminComponent implements OnInit {
       error: () => {
         this.loadingTranscript = false;
         this.snack.open('Failed to load chat transcript', 'Dismiss', { duration: 2500 });
+      }
+    });
+  }
+
+  loadMatchedChats() {
+    this.loadingMatchedChats = true;
+    this.api.adminGetMatchChats().subscribe({
+      next: (chats: any[]) => {
+        this.matchedChats = chats || [];
+        this.loadingMatchedChats = false;
+      },
+      error: () => {
+        this.loadingMatchedChats = false;
+      }
+    });
+  }
+
+  openMatchChatModal(chat: any) {
+    this.activeMatchChat = chat;
+    this.matchChatMessages = [];
+    this.loadingMatchMessages = true;
+    this.api.adminGetMatchMessages(chat.matchId).subscribe({
+      next: (msgs: any[]) => {
+        this.matchChatMessages = msgs || [];
+        this.loadingMatchMessages = false;
+      },
+      error: () => {
+        this.loadingMatchMessages = false;
+        this.snack.open('Failed to load match chat audit', 'Dismiss', { duration: 2500 });
+      }
+    });
+  }
+
+  clearMatchChat(chat: any) {
+    if (!chat) return;
+    if (!confirm(`Are you sure you want to permanently delete all chat messages between ${chat.userAName} and ${chat.userBName}? This action cannot be undone.`)) {
+      return;
+    }
+    this.api.adminClearMatchChat(chat.matchId).subscribe({
+      next: () => {
+        this.snack.open(`Conversation between ${chat.userAName} and ${chat.userBName} cleared.`, 'OK', { duration: 3000 });
+        if (this.activeMatchChat && this.activeMatchChat.matchId === chat.matchId) {
+          this.activeMatchChat = null;
+          this.matchChatMessages = [];
+        }
+        this.loadMatchedChats();
+      },
+      error: () => {
+        this.snack.open('Failed to clear match chat.', 'Dismiss', { duration: 3000 });
+      }
+    });
+  }
+
+  purgeOldMessages() {
+    if (!confirm('Are you sure you want to purge all match messages older than 10 days across all conversations?')) {
+      return;
+    }
+    this.purgingChat = true;
+    this.api.adminPurgeOldMessages(10).subscribe({
+      next: (res: any) => {
+        this.purgingChat = false;
+        const count = res?.deletedCount ?? res?.count ?? 0;
+        this.snack.open(`Purged ${count} messages older than 10 days! 🧹`, 'OK', { duration: 3500 });
+        this.loadMatchedChats();
+      },
+      error: () => {
+        this.purgingChat = false;
+        this.snack.open('Failed to purge old messages.', 'Dismiss', { duration: 3000 });
       }
     });
   }

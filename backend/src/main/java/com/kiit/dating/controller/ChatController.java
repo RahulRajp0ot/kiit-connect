@@ -36,10 +36,33 @@ public class ChatController {
             @AuthenticationPrincipal User currentUser,
             @RequestBody Map<String, String> body) {
         String content = body.get("content");
-        if (content == null || content.isBlank()) {
-            throw new IllegalArgumentException("Message content cannot be empty");
+        String imageUrl = body.get("imageUrl");
+        if ((content == null || content.isBlank()) && (imageUrl == null || imageUrl.isBlank())) {
+            throw new IllegalArgumentException("Message content or image cannot be empty");
         }
-        return ResponseEntity.ok(chatService.sendMessage(matchId, currentUser.getId(), content.trim()));
+        return ResponseEntity.ok(chatService.sendMessage(matchId, currentUser.getId(), content != null ? content.trim() : null, imageUrl));
+    }
+
+    // REST endpoint to send a photo in chat
+    @PostMapping("/api/chat/{matchId}/photo")
+    public ResponseEntity<MessageDTO> sendChatPhoto(
+            @PathVariable Long matchId,
+            @AuthenticationPrincipal User currentUser,
+            @RequestParam("file") org.springframework.web.multipart.MultipartFile file,
+            @RequestParam(value = "caption", required = false) String caption) throws java.io.IOException {
+        if (file == null || file.isEmpty()) {
+            throw new IllegalArgumentException("Image file cannot be empty");
+        }
+        return ResponseEntity.ok(chatService.sendPhoto(matchId, currentUser.getId(), file, caption));
+    }
+
+    // Delete message for everyone (Soft deletes in DB, masks on student screens, preserves for Admin audit!)
+    @DeleteMapping("/api/chat/{matchId}/message/{messageId}")
+    public ResponseEntity<MessageDTO> deleteMessageForEveryone(
+            @PathVariable Long matchId,
+            @PathVariable Long messageId,
+            @AuthenticationPrincipal User currentUser) {
+        return ResponseEntity.ok(chatService.deleteMessageForEveryone(matchId, messageId, currentUser.getId()));
     }
 
     // WebSocket endpoint to send a message (supports /app/chat/{matchId} and /app/chat.send/{matchId})

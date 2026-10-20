@@ -23,7 +23,10 @@ import java.util.List;
 import java.util.Map;
 
 import com.kiit.dating.dto.AdminMatchDTO;
+import com.kiit.dating.dto.AdminMatchChatSummaryDTO;
+import com.kiit.dating.dto.AdminMatchMessageDTO;
 import com.kiit.dating.service.MatchService;
+import com.kiit.dating.service.ChatService;
 import com.kiit.dating.service.EmailService;
 
 @RestController
@@ -37,6 +40,7 @@ public class AdminController {
     private final AdminSettingsService adminSettingsService;
     private final SpeedChatService speedChatService;
     private final MatchService matchService;
+    private final ChatService chatService;
     private final EmailService emailService;
 
     // ── User Management ──────────────────────────────────
@@ -245,6 +249,39 @@ public class AdminController {
     public ResponseEntity<Void> rejectMatch(@PathVariable Long id) {
         matchService.rejectMatch(id);
         return ResponseEntity.noContent().build();
+    }
+
+    // ── Matched Chats Audit & Control Endpoints ──────────
+    @GetMapping("/match-chats")
+    public ResponseEntity<List<AdminMatchChatSummaryDTO>> getMatchChatSummaries() {
+        return ResponseEntity.ok(chatService.getAdminMatchChatSummaries());
+    }
+
+    @GetMapping("/match-chats/{matchId}/messages")
+    public ResponseEntity<List<AdminMatchMessageDTO>> getMatchMessages(@PathVariable Long matchId) {
+        return ResponseEntity.ok(chatService.getAdminMatchMessages(matchId));
+    }
+
+    @DeleteMapping("/match-chats/{matchId}")
+    public ResponseEntity<Void> clearMatchChat(@PathVariable Long matchId) {
+        chatService.clearMatchChatByAdmin(matchId);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/match-chats/purge")
+    public ResponseEntity<Map<String, Object>> purgeOldMessages(@RequestBody(required = false) Map<String, Object> body) {
+        int days = 10;
+        if (body != null && body.get("days") != null) {
+            try {
+                days = Integer.parseInt(body.get("days").toString());
+            } catch (Exception ignored) {}
+        }
+        int purged = chatService.purgeMessagesOlderThan(days);
+        return ResponseEntity.ok(Map.of(
+                "status", "success",
+                "purgedCount", purged,
+                "message", "Purged " + purged + " messages older than " + days + " days"
+        ));
     }
 
     // ── Email Diagnostics ─────────────────────────────────

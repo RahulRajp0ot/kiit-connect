@@ -15,9 +15,23 @@ public interface MessageRepository extends JpaRepository<Message, Long> {
 
     List<Message> findByMatchOrderBySentAtAsc(Match match);
 
+    List<Message> findByMatchIdOrderBySentAtAsc(Long matchId);
+
     long countByReceiverIdAndReadFalse(Long receiverId);
+
+    long countByMatchId(Long matchId);
+
+    long countByMatchIdAndDeletedForUsersTrue(Long matchId);
 
     @Modifying
     @Query("DELETE FROM Message m WHERE m.sender.id = :userId OR m.receiver.id = :userId")
     void deleteAllByUserId(@Param("userId") Long userId);
+
+    @Modifying
+    @Query("DELETE FROM Message m WHERE m.match.id = :matchId")
+    void deleteAllByMatchId(@Param("matchId") Long matchId);
+
+    @Modifying
+    @Query("DELETE FROM Message m WHERE m.sentAt < :cutoff")
+    int deleteBySentAtBefore(@Param("cutoff") java.time.LocalDateTime cutoff);
 }

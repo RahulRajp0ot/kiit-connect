@@ -14,6 +14,9 @@ public class MessageDTO {
     private Long receiverId;
     private Long matchId;
     private String content;
+    private String imageUrl;
+    private boolean deletedForUsers;
+    private LocalDateTime deletedAt;
     private LocalDateTime sentAt;
     private boolean read;
 }

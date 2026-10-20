@@ -89,8 +89,17 @@ export class ApiService {
   getChatHistory(matchId: number): Observable<any[]> {
     return this.http.get<any[]>(`${this.base}/chat/${matchId}`);
   }
-  sendChatMessage(matchId: number, content: string): Observable<any> {
-    return this.http.post<any>(`${this.base}/chat/${matchId}/message`, { content });
+  sendChatMessage(matchId: number, content: string, imageUrl?: string): Observable<any> {
+    return this.http.post<any>(`${this.base}/chat/${matchId}/message`, { content, imageUrl });
+  }
+  sendChatPhoto(matchId: number, file: File, caption?: string): Observable<any> {
+    const formData = new FormData();
+    formData.append('file', file);
+    if (caption) formData.append('caption', caption);
+    return this.http.post<any>(`${this.base}/chat/${matchId}/photo`, formData);
+  }
+  deleteChatMessageForEveryone(matchId: number, messageId: number): Observable<any> {
+    return this.http.delete<any>(`${this.base}/chat/${matchId}/message/${messageId}`);
   }
 
   appealReview(): Observable<any> {
@@ -233,5 +242,19 @@ export class ApiService {
   }
   adminRejectMatch(matchId: number): Observable<void> {
     return this.http.put<void>(`${this.base}/admin/matches/${matchId}/reject`, {});
+  }
+
+  // ── Admin Matched Chats Audit & Retention Control ─────
+  adminGetMatchChats(): Observable<any[]> {
+    return this.http.get<any[]>(`${this.base}/admin/match-chats`);
+  }
+  adminGetMatchMessages(matchId: number): Observable<any[]> {
+    return this.http.get<any[]>(`${this.base}/admin/match-chats/${matchId}/messages`);
+  }
+  adminClearMatchChat(matchId: number): Observable<void> {
+    return this.http.delete<void>(`${this.base}/admin/match-chats/${matchId}`);
+  }
+  adminPurgeOldMessages(days: number = 10): Observable<any> {
+    return this.http.post<any>(`${this.base}/admin/match-chats/purge`, { days });
   }
 }

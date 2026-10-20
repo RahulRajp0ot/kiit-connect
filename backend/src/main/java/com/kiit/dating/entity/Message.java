@@ -26,16 +26,27 @@ public class Message {
     @JoinColumn(name = "match_id", nullable = false)
     private Match match;
 
-    @Column(nullable = false, length = 2000)
+    @Column(length = 2000)
     private String content;
+
+    @Column(length = 1000)
+    private String imageUrl;
+
+    @Builder.Default
+    private boolean deletedForUsers = false;
+
+    private LocalDateTime deletedAt;
 
     @Column(updatable = false)
     private LocalDateTime sentAt;
 
+    @Builder.Default
     private boolean read = false;
 
     @PrePersist
     protected void onCreate() {
-        sentAt = LocalDateTime.now();
+        if (sentAt == null) {
+            sentAt = LocalDateTime.now();
+        }
     }
 }
