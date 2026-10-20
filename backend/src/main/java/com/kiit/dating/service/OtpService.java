@@ -17,8 +17,10 @@ public class OtpService {
     private final EmailVerificationOtpRepository otpRepository;
     private final EmailService emailService;
 
+    public record OtpResult(String code, boolean delivered) {}
+
     @Transactional
-    public String createAndSendOtp(String email) {
+    public OtpResult createAndSendOtp(String email) {
         String code = emailService.generate6DigitOtp();
         LocalDateTime expiresAt = LocalDateTime.now().plusMinutes(10);
 
@@ -31,13 +33,13 @@ public class OtpService {
                 .build();
 
         otpRepository.save(entity);
-        emailService.sendVerificationOtpEmail(email, code);
+        boolean delivered = emailService.sendVerificationOtpEmail(email, code);
 
-        return code;
+        return new OtpResult(code, delivered);
     }
 
     @Transactional
-    public String createAndSendPasswordResetOtp(String email) {
+    public OtpResult createAndSendPasswordResetOtp(String email) {
         String code = emailService.generate6DigitOtp();
         LocalDateTime expiresAt = LocalDateTime.now().plusMinutes(10);
 
@@ -50,9 +52,9 @@ public class OtpService {
                 .build();
 
         otpRepository.save(entity);
-        emailService.sendPasswordResetOtpEmail(email, code);
+        boolean delivered = emailService.sendPasswordResetOtpEmail(email, code);
 
-        return code;
+        return new OtpResult(code, delivered);
     }
 
     @Transactional

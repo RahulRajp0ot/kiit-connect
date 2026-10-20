@@ -41,13 +41,15 @@ public class AuthService {
             throw new IllegalArgumentException("This college email is already registered. Please login.");
         }
 
-        String code = otpService.createAndSendOtp(cleanEmail);
+        OtpService.OtpResult result = otpService.createAndSendOtp(cleanEmail);
 
         Map<String, Object> resp = new HashMap<>();
         resp.put("status", "success");
-        resp.put("message", "A 6-digit verification code has been sent to " + cleanEmail);
-        if (!otpService.isSmtpConfigured()) {
-            resp.put("devOtp", code);
+        if (result.delivered()) {
+            resp.put("message", "A 6-digit verification code has been sent to " + cleanEmail);
+        } else {
+            resp.put("message", "Verification code generated! (SMTP offline, use demo code below)");
+            resp.put("devOtp", result.code());
         }
         return resp;
     }
@@ -117,13 +119,15 @@ public class AuthService {
             throw new DisabledException("Your account is deactivated. Please contact campus admin.");
         }
 
-        String code = otpService.createAndSendPasswordResetOtp(cleanEmail);
+        OtpService.OtpResult result = otpService.createAndSendPasswordResetOtp(cleanEmail);
 
         Map<String, Object> resp = new HashMap<>();
         resp.put("status", "success");
-        resp.put("message", "A 6-digit password reset code has been sent to " + cleanEmail);
-        if (!otpService.isSmtpConfigured()) {
-            resp.put("devOtp", code);
+        if (result.delivered()) {
+            resp.put("message", "A 6-digit password reset code has been sent to " + cleanEmail);
+        } else {
+            resp.put("message", "Password reset code generated! (SMTP offline, use demo code below)");
+            resp.put("devOtp", result.code());
         }
         return resp;
     }

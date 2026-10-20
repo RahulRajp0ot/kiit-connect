@@ -33,14 +33,14 @@ public class EmailService {
         return mailSender != null && mailUsername != null && !mailUsername.isBlank();
     }
 
-    public void sendVerificationOtpEmail(String toEmail, String otp) {
+    public boolean sendVerificationOtpEmail(String toEmail, String otp) {
         log.info("==================================================");
         log.info("📨 [CAMPUS EMAIL VERIFICATION] To: {} | CODE: {}", toEmail, otp);
         log.info("==================================================");
 
         if (!isSmtpConfigured()) {
             log.info("ℹ️ SMTP credentials not configured yet. Using free console mode for OTP verification.");
-            return;
+            return false;
         }
 
         try {
@@ -82,20 +82,21 @@ public class EmailService {
             helper.setText(html, true);
             mailSender.send(message);
             log.info("✅ Verification email successfully delivered via SMTP to {}", toEmail);
+            return true;
         } catch (Exception e) {
-            log.error("❌ SMTP delivery failed to {}: {}", toEmail, e.getMessage(), e);
-            throw new RuntimeException("Email delivery failed: " + e.getMessage() + ". Please check recipient email address or SMTP configuration.");
+            log.warn("⚠️ SMTP delivery failed to {}: {}", toEmail, e.getMessage());
+            return false;
         }
     }
 
-    public void sendPasswordResetOtpEmail(String toEmail, String otp) {
+    public boolean sendPasswordResetOtpEmail(String toEmail, String otp) {
         log.info("==================================================");
         log.info("🔑 [CAMPUS PASSWORD RESET] To: {} | CODE: {}", toEmail, otp);
         log.info("==================================================");
 
         if (!isSmtpConfigured()) {
             log.info("ℹ️ SMTP credentials not configured yet. Using free console mode for Password Reset OTP.");
-            return;
+            return false;
         }
 
         try {
@@ -137,9 +138,10 @@ public class EmailService {
             helper.setText(html, true);
             mailSender.send(message);
             log.info("✅ Password reset email successfully delivered via SMTP to {}", toEmail);
+            return true;
         } catch (Exception e) {
-            log.error("❌ SMTP password reset delivery failed to {}: {}", toEmail, e.getMessage(), e);
-            throw new RuntimeException("Email delivery failed: " + e.getMessage() + ". Please check recipient email address.");
+            log.warn("⚠️ SMTP password reset delivery failed to {}: {}", toEmail, e.getMessage());
+            return false;
         }
     }
 
