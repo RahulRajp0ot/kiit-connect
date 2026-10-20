@@ -55,15 +55,19 @@ public class User implements UserDetails {
     private List<String> photoUrls;
 
     @Enumerated(EnumType.STRING)
+    @Builder.Default
     private Role role = Role.USER;
 
+    @Builder.Default
     private boolean active = true;
-    private boolean profileComplete = false;
+
+    @Builder.Default
+    private boolean profileComplete = true;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     @Builder.Default
-    private ApprovalStatus approvalStatus = ApprovalStatus.PENDING;
+    private ApprovalStatus approvalStatus = ApprovalStatus.APPROVED;
 
     @Column(length = 1000)
     private String rejectionReason;

@@ -48,12 +48,12 @@ import { trigger, state, style, animate, transition } from '@angular/animations'
           <div class="limit-pill" *ngIf="!loading && limitStatus.isApproved && limitStatus.matchingEnabled"
                [class.warning]="limitStatus.swipesRemaining <= 2"
                [class.exhausted]="limitStatus.limitReached">
-            <mat-icon class="limit-icon">{{ limitStatus.limitReached ? 'lock_clock' : 'bolt' }}</mat-icon>
+            <mat-icon class="limit-icon">{{ limitStatus.limitReached ? 'lock_clock' : 'favorite' }}</mat-icon>
             <span *ngIf="!limitStatus.limitReached">
-              <strong>{{ limitStatus.swipesRemaining }}</strong> / {{ limitStatus.maxLimit || 5 }} swipes left today
+              <strong>{{ limitStatus.swipesRemaining }}</strong> / {{ limitStatus.maxLimit || 5 }} likes left today
             </span>
             <span *ngIf="limitStatus.limitReached">
-              Daily Limit Reached (0/{{ limitStatus.maxLimit || 5 }} left)
+              Likes exhausted (0/{{ limitStatus.maxLimit || 5 }}) · Passes unlimited
             </span>
           </div>
 
@@ -202,21 +202,25 @@ import { trigger, state, style, animate, transition } from '@angular/animations'
           </div>
         </div>
 
-        <!-- 5. Empty State (Matching is on, limit not reached, but all seen) -->
-        <div class="state-card empty-card" *ngIf="!loading && limitStatus.isApproved && limitStatus.matchingEnabled && !limitStatus.limitReached && (!users || users.length === 0 || currentIndex >= users.length)">
+        <!-- 5. Empty State (Matching is on, but all profiles in deck swiped) -->
+        <div class="state-card empty-card" *ngIf="!loading && limitStatus.isApproved && limitStatus.matchingEnabled && (!users || users.length === 0 || currentIndex >= users.length)">
           <div class="empty-icon-wrap">
             <mat-icon class="huge-icon">favorite_border</mat-icon>
           </div>
           <h2 class="empty-title">You've seen everyone!</h2>
           <p class="empty-desc">Check back later when more KIIT students sign up.</p>
+          <div class="reset-time-box" *ngIf="limitStatus.limitReached && limitStatus.resetInMinutes > 0" style="margin-bottom: 16px;">
+            <mat-icon class="time-icon">schedule</mat-icon>
+            <span>Next likes available in ~{{ formatResetTime(limitStatus.resetInMinutes) }}</span>
+          </div>
           <button mat-raised-button color="primary" class="reload-btn" (click)="loadAll()">
             <mat-icon>refresh</mat-icon>
             <span>Refresh Feed</span>
           </button>
         </div>
 
-        <!-- 6. Active Swipe Card Stack -->
-        <div class="card-area" *ngIf="!loading && limitStatus.isApproved && limitStatus.matchingEnabled && !limitStatus.limitReached && users && users.length > 0 && currentIndex < users.length">
+        <!-- 6. Active Swipe Card Stack (Allows unlimited passes even if likes are exhausted) -->
+        <div class="card-area" *ngIf="!loading && limitStatus.isApproved && limitStatus.matchingEnabled && users && users.length > 0 && currentIndex < users.length">
           <div class="card-wrapper" [@cardAnim]="cardState">
             <div class="tinder-card">
               <!-- Profile Photo & Gradient Overlay -->
@@ -259,9 +263,9 @@ import { trigger, state, style, animate, transition } from '@angular/animations'
             </div>
           </div>
 
-          <!-- Bottom Action Buttons -->
+          <!-- Bottom Action Buttons: Pass is unlimited, Like is limited to 5 -->
           <div class="controls-row">
-            <button class="round-btn pass-btn" (click)="swipe('dislike')" [disabled]="swiping || limitStatus.limitReached" title="Pass">
+            <button class="round-btn pass-btn" (click)="swipe('dislike')" [disabled]="swiping" title="Pass (Unlimited)">
               <mat-icon class="control-icon">close</mat-icon>
             </button>
 
@@ -269,8 +273,8 @@ import { trigger, state, style, animate, transition } from '@angular/animations'
               <span>{{ currentIndex + 1 }}</span> / {{ users.length }}
             </div>
 
-            <button class="round-btn like-btn" (click)="swipe('like')" [disabled]="swiping || limitStatus.limitReached" title="Like">
-              <mat-icon class="control-icon">favorite</mat-icon>
+            <button class="round-btn like-btn" (click)="swipe('like')" [disabled]="swiping || limitStatus.limitReached" [title]="limitStatus.limitReached ? 'Like limit reached (Passes still unlimited)' : 'Like'">
+              <mat-icon class="control-icon">{{ limitStatus.limitReached ? 'lock' : 'favorite' }}</mat-icon>
             </button>
           </div>
         </div>
@@ -1167,7 +1171,14 @@ export class DiscoverComponent implements OnInit {
   }
 
   swipe(action: 'like' | 'dislike') {
-    if (this.swiping || !this.currentUser || !this.limitStatus.isApproved || this.limitStatus.limitReached || !this.limitStatus.matchingEnabled) return;
+    if (this.swiping || !this.currentUser || !this.limitStatus.isApproved || !this.limitStatus.matchingEnabled) return;
+
+    // Dislikes/passes are UNLIMITED like Tinder! Only LIKES check the daily quota
+    if (action === 'like' && this.limitStatus.limitReached) {
+      this.snack.open('Daily like limit reached! You can still pass profiles freely.', 'OK', { duration: 3000 });
+      return;
+    }
+
     this.swiping = true;
     this.cardState = action === 'like' ? 'liked' : 'disliked';
 
@@ -1188,14 +1199,15 @@ export class DiscoverComponent implements OnInit {
             this.limitStatus.matchingEnabled = false;
             this.limitStatus.matchingDisabledMessage = res.message;
           } else if (res?.status === 'limit_reached') {
-            this.snack.open(res.error || 'Daily limit reached!', 'OK', { duration: 4000 });
+            this.snack.open(res.error || 'Daily like limit reached!', 'OK', { duration: 4000 });
             this.limitStatus.limitReached = true;
             this.limitStatus.swipesRemaining = 0;
             if (res.resetInMinutes) {
               this.limitStatus.resetInMinutes = res.resetInMinutes;
             }
           } else {
-            if (res?.swipesRemaining !== undefined) {
+            // Only update remaining likes if this was a LIKE action
+            if (action === 'like' && res?.swipesRemaining !== undefined) {
               this.limitStatus.swipesRemaining = res.swipesRemaining;
               if (res.swipesRemaining <= 0) {
                 this.limitStatus.limitReached = true;

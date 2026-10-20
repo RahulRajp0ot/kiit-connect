@@ -16,7 +16,11 @@ public interface UserSwipeRepository extends JpaRepository<UserSwipe, Long> {
 
     long countByFromUser_IdAndCreatedAtAfter(Long fromUserId, LocalDateTime since);
 
+    long countByFromUser_IdAndActionAndCreatedAtAfter(Long fromUserId, UserSwipe.Action action, LocalDateTime since);
+
     List<UserSwipe> findByFromUser_IdAndCreatedAtAfterOrderByCreatedAtAsc(Long fromUserId, LocalDateTime since);
+
+    List<UserSwipe> findByFromUser_IdAndActionAndCreatedAtAfterOrderByCreatedAtAsc(Long fromUserId, UserSwipe.Action action, LocalDateTime since);
 
     boolean existsByFromUserAndToUser(User fromUser, User toUser);
 

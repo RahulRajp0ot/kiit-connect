@@ -63,14 +63,15 @@ public class DiscoveryService {
         User user = userRepository.findById(userId).orElseThrow();
         int userLimit = getUserDailySwipeLimit(user);
 
+        // Only count LIKES towards the daily limit — Passes/Dislikes are unlimited like Tinder!
         LocalDateTime since = LocalDateTime.now().minusHours(24);
-        long used = userSwipeRepository.countByFromUser_IdAndCreatedAtAfter(userId, since);
+        long used = userSwipeRepository.countByFromUser_IdAndActionAndCreatedAtAfter(userId, UserSwipe.Action.LIKE, since);
         long remaining = Math.max(0, userLimit - used);
         boolean limitReached = remaining <= 0;
 
         long resetInMinutes = 0L;
         if (limitReached) {
-            List<UserSwipe> recent = userSwipeRepository.findByFromUser_IdAndCreatedAtAfterOrderByCreatedAtAsc(userId, since);
+            List<UserSwipe> recent = userSwipeRepository.findByFromUser_IdAndActionAndCreatedAtAfterOrderByCreatedAtAsc(userId, UserSwipe.Action.LIKE, since);
             if (!recent.isEmpty()) {
                 LocalDateTime oldestInWindow = recent.get(0).getCreatedAt();
                 LocalDateTime resetTime = oldestInWindow.plusHours(24);
@@ -115,13 +116,13 @@ public class DiscoveryService {
         User toUser = userRepository.findById(toUserId).orElseThrow();
         int userLimit = getUserDailySwipeLimit(fromUser);
 
-        // Enforce 24-hour limit
+        // Enforce 24-hour limit on LIKES only
         LocalDateTime since = LocalDateTime.now().minusHours(24);
-        long used = userSwipeRepository.countByFromUser_IdAndCreatedAtAfter(fromUserId, since);
-        if (used >= userLimit) {
+        long usedLikes = userSwipeRepository.countByFromUser_IdAndActionAndCreatedAtAfter(fromUserId, UserSwipe.Action.LIKE, since);
+        if (usedLikes >= userLimit) {
             Map<String, Object> err = new HashMap<>(getSwipeLimitStatus(fromUserId));
             err.put("status", "limit_reached");
-            err.put("error", "Daily limit reached! You can swipe only " + userLimit + " profiles per 24 hours.");
+            err.put("error", "Daily like limit reached! You can like only " + userLimit + " profiles per 24 hours. (You can still pass profiles freely!)");
             return err;
         }
 
@@ -137,7 +138,7 @@ public class DiscoveryService {
             likeRepository.save(Like.builder().fromUser(fromUser).toUser(toUser).build());
         }
 
-        long remaining = Math.max(0, userLimit - (used + 1));
+        long remaining = Math.max(0, userLimit - (usedLikes + 1));
         Map<String, Object> response = new HashMap<>();
         response.put("swipesRemaining", remaining);
 
@@ -182,26 +183,20 @@ public class DiscoveryService {
         }
 
         User toUser = userRepository.findById(toUserId).orElseThrow();
-        int userLimit = getUserDailySwipeLimit(fromUser);
 
-        // Enforce 24-hour limit
-        LocalDateTime since = LocalDateTime.now().minusHours(24);
-        long used = userSwipeRepository.countByFromUser_IdAndCreatedAtAfter(fromUserId, since);
-        if (used >= userLimit) {
-            Map<String, Object> err = new HashMap<>(getSwipeLimitStatus(fromUserId));
-            err.put("status", "limit_reached");
-            err.put("error", "Daily limit reached! You can swipe only " + userLimit + " profiles per 24 hours.");
-            return err;
-        }
-
-        // Record the swipe action so disliked user is never shown again & counts toward limit
+        // Dislikes/Passes are UNLIMITED like Tinder! Record the swipe so passed student is never shown again
         userSwipeRepository.save(UserSwipe.builder()
                 .fromUser(fromUser)
                 .toUser(toUser)
                 .action(UserSwipe.Action.DISLIKE)
                 .build());
 
-        long remaining = Math.max(0, userLimit - (used + 1));
+        // Likes remaining is unaffected by dislikes!
+        LocalDateTime since = LocalDateTime.now().minusHours(24);
+        int userLimit = getUserDailySwipeLimit(fromUser);
+        long usedLikes = userSwipeRepository.countByFromUser_IdAndActionAndCreatedAtAfter(fromUserId, UserSwipe.Action.LIKE, since);
+        long remaining = Math.max(0, userLimit - usedLikes);
+
         Map<String, Object> response = new HashMap<>();
         response.put("status", "disliked");
         response.put("swipesRemaining", remaining);

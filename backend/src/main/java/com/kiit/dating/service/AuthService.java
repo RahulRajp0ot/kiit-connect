@@ -78,9 +78,9 @@ public class AuthService {
                 .gender(request.getGender())
                 .dateOfBirth(request.getDateOfBirth())
                 .role(User.Role.USER)
-                .approvalStatus(User.ApprovalStatus.PENDING)
+                .approvalStatus(User.ApprovalStatus.APPROVED)
                 .active(true)
-                .profileComplete(false)
+                .profileComplete(true)
                 .build();
 
         user = userRepository.save(user);
