@@ -43,14 +43,13 @@ public class AuthService {
 
         OtpService.OtpResult result = otpService.createAndSendOtp(cleanEmail);
 
+        if (!result.delivered()) {
+            throw new IllegalArgumentException("Failed to deliver verification code to " + cleanEmail + ". Please verify your email address or try again.");
+        }
+
         Map<String, Object> resp = new HashMap<>();
         resp.put("status", "success");
-        if (result.delivered()) {
-            resp.put("message", "A 6-digit verification code has been sent to " + cleanEmail);
-        } else {
-            resp.put("message", "Verification code generated! (SMTP offline, use demo code below)");
-            resp.put("devOtp", result.code());
-        }
+        resp.put("message", "A 6-digit verification code has been sent to " + cleanEmail);
         return resp;
     }
 
@@ -121,14 +120,13 @@ public class AuthService {
 
         OtpService.OtpResult result = otpService.createAndSendPasswordResetOtp(cleanEmail);
 
+        if (!result.delivered()) {
+            throw new IllegalArgumentException("Failed to deliver reset code to " + cleanEmail + ". Please verify your email address.");
+        }
+
         Map<String, Object> resp = new HashMap<>();
         resp.put("status", "success");
-        if (result.delivered()) {
-            resp.put("message", "A 6-digit password reset code has been sent to " + cleanEmail);
-        } else {
-            resp.put("message", "Password reset code generated! (SMTP offline, use demo code below)");
-            resp.put("devOtp", result.code());
-        }
+        resp.put("message", "A 6-digit password reset code has been sent to " + cleanEmail);
         return resp;
     }
 

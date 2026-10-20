@@ -107,11 +107,7 @@ import { AuthService } from '../../core/services/auth.service';
               <br><strong class="highlight-email">{{ registerForm.get('email')?.value }}</strong>
             </p>
 
-            <!-- Dev Test Helper Pill (when in free local testing mode) -->
-            <div class="dev-otp-pill" *ngIf="devOtp">
-              <mat-icon class="terminal-icon">code</mat-icon>
-              <span>Dev Demo Code: <strong>{{ devOtp }}</strong></span>
-            </div>
+
 
             <form (ngSubmit)="completeRegistration()">
               <div class="otp-field-container">

@@ -74,11 +74,7 @@ import { ApiService } from '../../core/services/api.service';
               <br><strong class="highlight-email">{{ targetEmail }}</strong>
             </p>
 
-            <!-- Dev Demo Code Pill (when SMTP is not configured) -->
-            <div class="dev-otp-pill" *ngIf="devOtp">
-              <mat-icon class="terminal-icon">code</mat-icon>
-              <span>Dev Demo Code: <strong>{{ devOtp }}</strong></span>
-            </div>
+
 
             <form [formGroup]="resetForm" (ngSubmit)="onResetPassword()">
               <!-- 6-digit OTP -->
