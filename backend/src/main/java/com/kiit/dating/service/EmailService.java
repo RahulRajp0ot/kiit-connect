@@ -259,10 +259,47 @@ public class EmailService {
         res.put("resendConfigured", resendApiKey != null && !resendApiKey.isBlank());
         res.put("smtpConfigured", mailSender != null && mailUsername != null && !mailUsername.isBlank());
 
+        if (brevoApiKey != null && !brevoApiKey.isBlank()) {
+            String senderEmail = (brevoSenderEmail != null && !brevoSenderEmail.isBlank())
+                    ? brevoSenderEmail.trim()
+                    : (mailUsername != null && !mailUsername.isBlank() ? mailUsername.trim() : "rahulrajp0ot77799@gmail.com");
+            res.put("brevoSenderEmailUsed", senderEmail);
+            res.put("brevoApiKeyPrefix", brevoApiKey.length() > 8 ? brevoApiKey.substring(0, 8) + "..." : "short_key");
+
+            try {
+                Map<String, Object> payload = new HashMap<>();
+                payload.put("sender", Map.of("name", brevoSenderName, "email", senderEmail));
+                payload.put("to", List.of(Map.of("email", toEmail.trim())));
+                payload.put("subject", "Test Email from KIIT Connects Diagnostics");
+                payload.put("htmlContent", "<h3>Live Email Delivery Test via Brevo API</h3><p>If you received this, Brevo delivery is 100% operational!</p>");
+
+                String jsonBody = objectMapper.writeValueAsString(payload);
+                HttpRequest request = HttpRequest.newBuilder()
+                        .uri(URI.create("https://api.brevo.com/v3/smtp/email"))
+                        .header("api-key", brevoApiKey.trim())
+                        .header("Content-Type", "application/json")
+                        .header("accept", "application/json")
+                        .POST(HttpRequest.BodyPublishers.ofString(jsonBody, StandardCharsets.UTF_8))
+                        .timeout(Duration.ofSeconds(10))
+                        .build();
+
+                HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+                res.put("brevoStatusCode", response.statusCode());
+                res.put("brevoResponseBody", response.body());
+                if (response.statusCode() >= 200 && response.statusCode() < 300) {
+                    res.put("success", true);
+                    res.put("message", "Email successfully delivered to " + toEmail + " via Brevo API!");
+                    return res;
+                }
+            } catch (Exception e) {
+                res.put("brevoException", e.getClass().getName() + ": " + e.getMessage());
+            }
+        }
+
         boolean success = sendEmail(
                 toEmail,
                 "Test Email from KIIT Connects Diagnostics",
-                "<h3>Live Email Delivery Test</h3><p>If you received this email, the API-based delivery over Port 443 is working perfectly!</p>"
+                "<h3>Live Email Delivery Test</h3><p>If you received this email, the delivery is working!</p>"
         );
 
         res.put("success", success);
