@@ -83,7 +83,8 @@ public class EmailService {
             mailSender.send(message);
             log.info("✅ Verification email successfully delivered via SMTP to {}", toEmail);
         } catch (Exception e) {
-            log.warn("⚠️ SMTP sending failed ({}), code is safely available in console: {}", e.getMessage(), otp);
+            log.error("❌ SMTP delivery failed to {}: {}", toEmail, e.getMessage(), e);
+            throw new RuntimeException("Email delivery failed: " + e.getMessage() + ". Please check recipient email address or SMTP configuration.");
         }
     }
 
@@ -137,7 +138,41 @@ public class EmailService {
             mailSender.send(message);
             log.info("✅ Password reset email successfully delivered via SMTP to {}", toEmail);
         } catch (Exception e) {
-            log.warn("⚠️ SMTP sending failed ({}), code is safely available in console: {}", e.getMessage(), otp);
+            log.error("❌ SMTP password reset delivery failed to {}: {}", toEmail, e.getMessage(), e);
+            throw new RuntimeException("Email delivery failed: " + e.getMessage() + ". Please check recipient email address.");
         }
+    }
+
+    public java.util.Map<String, Object> sendTestEmail(String toEmail) {
+        java.util.Map<String, Object> res = new java.util.HashMap<>();
+        res.put("to", toEmail);
+        res.put("smtpConfigured", isSmtpConfigured());
+        res.put("mailUsername", mailUsername);
+
+        if (!isSmtpConfigured()) {
+            res.put("success", false);
+            res.put("error", "SMTP is not configured (mailSender or username is empty)");
+            return res;
+        }
+
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+            helper.setFrom(mailUsername, "KIIT Connects Diagnostics");
+            helper.setTo(toEmail);
+            helper.setSubject("Test Email from KIIT Connects Diagnostics");
+            helper.setText("<h3>Live SMTP test from KIIT Connects</h3><p>If you received this, SMTP email delivery is 100% operational!</p>", true);
+            mailSender.send(message);
+            res.put("success", true);
+            res.put("message", "Email successfully delivered to " + toEmail);
+        } catch (Exception e) {
+            log.error("❌ Test email failed to {}: {}", toEmail, e.getMessage(), e);
+            res.put("success", false);
+            res.put("error", e.getClass().getName() + ": " + e.getMessage());
+            if (e.getCause() != null) {
+                res.put("cause", e.getCause().getClass().getName() + ": " + e.getCause().getMessage());
+            }
+        }
+        return res;
     }
 }

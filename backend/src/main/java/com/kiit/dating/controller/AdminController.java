@@ -24,6 +24,7 @@ import java.util.Map;
 
 import com.kiit.dating.dto.AdminMatchDTO;
 import com.kiit.dating.service.MatchService;
+import com.kiit.dating.service.EmailService;
 
 @RestController
 @RequestMapping("/api/admin")
@@ -36,6 +37,7 @@ public class AdminController {
     private final AdminSettingsService adminSettingsService;
     private final SpeedChatService speedChatService;
     private final MatchService matchService;
+    private final EmailService emailService;
 
     // ── User Management ──────────────────────────────────
     @GetMapping("/users")
@@ -243,5 +245,11 @@ public class AdminController {
     public ResponseEntity<Void> rejectMatch(@PathVariable Long id) {
         matchService.rejectMatch(id);
         return ResponseEntity.noContent().build();
+    }
+
+    // ── Email Diagnostics ─────────────────────────────────
+    @GetMapping("/test-email")
+    public ResponseEntity<Map<String, Object>> testEmail(@RequestParam String to) {
+        return ResponseEntity.ok(emailService.sendTestEmail(to));
     }
 }
