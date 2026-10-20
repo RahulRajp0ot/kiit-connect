@@ -67,7 +67,7 @@ public class User implements UserDetails {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     @Builder.Default
-    private ApprovalStatus approvalStatus = ApprovalStatus.APPROVED;
+    private ApprovalStatus approvalStatus = ApprovalStatus.PENDING;
 
     @Column(length = 1000)
     private String rejectionReason;

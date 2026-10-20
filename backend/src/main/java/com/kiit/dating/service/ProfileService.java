@@ -142,7 +142,6 @@ public class ProfileService {
         List<String> photos = new ArrayList<>(user.getPhotoUrls());
         photos.remove(photoUrl);
         user.setPhotoUrls(photos);
-        if (photos.isEmpty()) user.setProfileComplete(false);
         userRepository.save(user);
     }
 

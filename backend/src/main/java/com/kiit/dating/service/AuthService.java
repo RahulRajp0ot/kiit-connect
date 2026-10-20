@@ -78,7 +78,7 @@ public class AuthService {
                 .gender(request.getGender())
                 .dateOfBirth(request.getDateOfBirth())
                 .role(User.Role.USER)
-                .approvalStatus(User.ApprovalStatus.APPROVED)
+                .approvalStatus(User.ApprovalStatus.PENDING)
                 .active(true)
                 .profileComplete(true)
                 .build();
