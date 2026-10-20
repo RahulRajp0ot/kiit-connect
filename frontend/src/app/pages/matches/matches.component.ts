@@ -7,6 +7,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { ApiService } from '../../core/services/api.service';
+import { environment } from '../../../environments/environment';
 
 @Component({
   selector: 'app-matches',
@@ -35,7 +36,7 @@ import { ApiService } from '../../core/services/api.service';
       <div class="matches-grid" *ngIf="!loading && matches.length > 0">
         <div class="match-card" *ngFor="let match of matches" (click)="openChat(match)">
           <div class="match-photo-wrapper">
-            <img [src]="match.matchedUserPhoto || getAvatarUrl(match.matchedUserName)"
+            <img [src]="resolvePhotoUrl(match.matchedUserPhoto) || getAvatarUrl(match.matchedUserName)"
               [alt]="match.matchedUserName" class="match-photo">
             <div class="online-dot"></div>
           </div>
@@ -204,6 +205,20 @@ export class MatchesComponent implements OnInit {
 
   getAvatarUrl(name: string) {
     return `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=ff6b9d&color=fff&size=128`;
+  }
+
+  resolvePhotoUrl(url?: string): string {
+    if (!url) return '';
+    if (url.startsWith('data:') || url.startsWith('blob:')) return url;
+    const backendOrigin = environment.apiUrl.replace(/\/api\/?$/, '');
+    if (url.includes('localhost:') || url.includes('127.0.0.1:')) {
+      if (typeof window !== 'undefined' && window.location.hostname !== 'localhost') {
+        return url.replace(/^http:\/\/(localhost|127\.0\.0\.1):\d+/, backendOrigin);
+      }
+    }
+    if (url.startsWith('http://') || url.startsWith('https://')) return url;
+    const cleanPath = url.startsWith('/') ? url : `/${url}`;
+    return `${backendOrigin}${cleanPath}`;
   }
 
   formatDate(dateStr: string) {

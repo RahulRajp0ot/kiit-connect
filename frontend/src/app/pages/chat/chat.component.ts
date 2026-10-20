@@ -750,24 +750,27 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
   resolvePhotoUrl(url?: string): string {
     if (!url) return '';
     if (url.startsWith('data:') || url.startsWith('blob:')) return url;
-    if (url.startsWith('http://') || url.startsWith('https://')) {
-      if (typeof window !== 'undefined' && url.includes('localhost:8088') && window.location.hostname !== 'localhost') {
-        const backendOrigin = environment.apiUrl.replace(/\/api\/?$/, '');
-        return url.replace(/http:\/\/localhost:8088/, backendOrigin);
+
+    const backendOrigin = environment.apiUrl.replace(/\/api\/?$/, '');
+
+    // In production, replace any localhost:PORT with the live backend origin
+    if (url.includes('localhost:') || url.includes('127.0.0.1:')) {
+      if (typeof window !== 'undefined' && window.location.hostname !== 'localhost') {
+        return url.replace(/^http:\/\/(localhost|127\.0\.0\.1):\d+/, backendOrigin);
       }
+    }
+
+    if (url.startsWith('http://') || url.startsWith('https://')) {
       return url;
     }
-    const backendOrigin = environment.apiUrl.replace(/\/api\/?$/, '');
+
     const cleanPath = url.startsWith('/') ? url : `/${url}`;
     return `${backendOrigin}${cleanPath}`;
   }
 
   getPartnerAvatar(url?: string): string {
     if (url) {
-      if (typeof window !== 'undefined' && url.startsWith('http://localhost:8088') && window.location.hostname !== 'localhost') {
-        return url.replace('http://localhost:8088', `${window.location.protocol}//${window.location.hostname}:8088`);
-      }
-      return url;
+      return this.resolvePhotoUrl(url);
     }
     return `https://ui-avatars.com/api/?name=${encodeURIComponent(this.partnerName || 'Match')}&background=ff4b72&color=fff&size=128`;
   }
