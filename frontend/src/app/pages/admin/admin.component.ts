@@ -1684,7 +1684,7 @@ import { AuthService } from '../../core/services/auth.service';
       object-fit: cover;
     }
 
-    .gender-pill {
+    .person-img-wrap .gender-pill {
       position: absolute;
       bottom: 2px;
       left: 2px;
