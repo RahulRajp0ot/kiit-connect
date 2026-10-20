@@ -22,4 +22,5 @@ public class AdminMatchChatSummaryDTO {
     private String lastMessageSnippet;
     private LocalDateTime lastMessageTime;
     private LocalDateTime matchedAt;
+    private String status;
 }

@@ -1,6 +1,6 @@
 import { Component, OnInit, OnDestroy, ViewChild, ElementRef, AfterViewChecked } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ActivatedRoute, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FormControl, ReactiveFormsModule, FormsModule } from '@angular/forms';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
@@ -36,6 +36,10 @@ import { environment } from '../../../environments/environment';
             {{connected ? 'Live Chat Active' : 'Connecting...'}}
           </span>
         </div>
+        <button mat-stroked-button class="unmatch-header-btn" (click)="unmatchPartner()" title="Unmatch student">
+          <mat-icon>heart_broken</mat-icon>
+          <span class="unmatch-text">Unmatch</span>
+        </button>
       </div>
 
       <!-- Messages Area -->
@@ -164,11 +168,52 @@ import { environment } from '../../../environments/environment';
       object-fit: cover;
       border: 2px solid #ff4b72;
     }
+    .partner-info {
+      flex: 1;
+      min-width: 0;
+    }
     .partner-info h3 {
       margin: 0;
       font-size: 1.05rem;
       font-weight: 700;
       color: #0f172a;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .unmatch-header-btn {
+      color: #64748b !important;
+      border-color: #e2e8f0 !important;
+      font-size: 0.8rem !important;
+      border-radius: 20px !important;
+      padding: 0 12px !important;
+      height: 32px !important;
+      line-height: 30px !important;
+      display: inline-flex !important;
+      align-items: center !important;
+      gap: 4px;
+      transition: all 0.2s;
+      flex-shrink: 0;
+    }
+    .unmatch-header-btn:hover {
+      color: #ef4444 !important;
+      border-color: #fca5a5 !important;
+      background: #fef2f2 !important;
+    }
+    .unmatch-header-btn mat-icon {
+      font-size: 16px !important;
+      width: 16px !important;
+      height: 16px !important;
+      margin: 0 !important;
+    }
+    @media (max-width: 600px) {
+      .unmatch-text {
+        display: none;
+      }
+      .unmatch-header-btn {
+        padding: 0 8px !important;
+        min-width: 36px !important;
+      }
     }
     .status {
       font-size: 0.75rem;
@@ -464,6 +509,7 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
 
   constructor(
     private route: ActivatedRoute,
+    private router: Router,
     private api: ApiService,
     private auth: AuthService,
     private snack: MatSnackBar
@@ -503,8 +549,12 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
         this.loadingHistory = false;
         this.shouldScroll = true;
       },
-      error: () => {
+      error: (err: any) => {
         this.loadingHistory = false;
+        if (err?.status === 403) {
+          this.snack.open('This match is no longer active.', 'OK', { duration: 3500 });
+          this.router.navigate(['/matches']);
+        }
       }
     });
   }
@@ -529,6 +579,11 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
         if (hasNew) {
           this.shouldScroll = true;
         }
+      },
+      error: (err: any) => {
+        if (err?.status === 403) {
+          this.router.navigate(['/matches']);
+        }
       }
     });
   }
@@ -551,6 +606,12 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
             try {
               const msg = JSON.parse(frame.body);
               if (!msg) return;
+
+              if (msg.type === 'UNMATCHED') {
+                this.snack.open('This match was disconnected.', 'OK', { duration: 4000 });
+                this.router.navigate(['/matches']);
+                return;
+              }
 
               const idx = this.messages.findIndex(m => m.id === msg.id);
               if (idx === -1) {
@@ -644,6 +705,21 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
       error: () => {
         this.sending = false;
         this.snack.open('Failed to send message.', 'OK', { duration: 2500 });
+      }
+    });
+  }
+
+  unmatchPartner() {
+    if (!confirm(`Are you sure you want to unmatch with ${this.partnerName || 'this student'}? This conversation will end and you won't be able to message each other.`)) {
+      return;
+    }
+    this.api.unmatch(this.matchId).subscribe({
+      next: () => {
+        this.snack.open(`Unmatched with ${this.partnerName || 'student'}.`, 'OK', { duration: 3000 });
+        this.router.navigate(['/matches']);
+      },
+      error: () => {
+        this.snack.open('Failed to unmatch. Please try again.', 'Dismiss', { duration: 3000 });
       }
     });
   }

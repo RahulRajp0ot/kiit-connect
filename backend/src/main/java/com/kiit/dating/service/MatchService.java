@@ -3,14 +3,17 @@ package com.kiit.dating.service;
 import com.kiit.dating.dto.MatchDTO;
 import com.kiit.dating.entity.Match;
 import com.kiit.dating.entity.User;
+import com.kiit.dating.repository.LikeRepository;
 import com.kiit.dating.repository.MatchRepository;
 import com.kiit.dating.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
 
 import com.kiit.dating.dto.AdminMatchDTO;
 import java.time.LocalDateTime;
@@ -21,6 +24,8 @@ public class MatchService {
 
     private final MatchRepository matchRepository;
     private final UserRepository userRepository;
+    private final LikeRepository likeRepository;
+    private final SimpMessagingTemplate messagingTemplate;
 
     @Transactional(readOnly = true)
     public List<MatchDTO> getMatches(Long userId) {
@@ -56,6 +61,32 @@ public class MatchService {
                 .orElseThrow(() -> new IllegalArgumentException("Match not found: " + matchId));
         match.setStatus(Match.Status.REJECTED);
         matchRepository.save(match);
+    }
+
+    @Transactional
+    public void unmatch(Long matchId, Long currentUserId) {
+        Match match = matchRepository.findById(matchId)
+                .orElseThrow(() -> new IllegalArgumentException("Match not found: " + matchId));
+
+        if (!match.getUserA().getId().equals(currentUserId) && !match.getUserB().getId().equals(currentUserId)) {
+            throw new org.springframework.security.access.AccessDeniedException("You are not authorized to unmatch this connection.");
+        }
+
+        match.setStatus(Match.Status.UNMATCHED);
+        matchRepository.save(match);
+
+        // Remove mutual likes so they don't stay in liked state
+        likeRepository.deleteLikesBetween(match.getUserA(), match.getUserB());
+
+        // Notify active match chat in real-time via WebSocket
+        try {
+            Map<String, Object> payload = Map.of(
+                    "type", "UNMATCHED",
+                    "matchId", matchId,
+                    "message", "This match has been disconnected."
+            );
+            messagingTemplate.convertAndSend("/topic/match/" + matchId, (Object) payload);
+        } catch (Exception ignored) {}
     }
 
     private MatchDTO toMatchDTO(Match match, Long currentUserId) {

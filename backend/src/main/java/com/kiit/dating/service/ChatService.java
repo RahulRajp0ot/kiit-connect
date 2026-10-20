@@ -49,6 +49,9 @@ public class ChatService {
     public List<MessageDTO> getChatHistory(Long matchId) {
         Match match = matchRepository.findById(matchId)
                 .orElseThrow(() -> new IllegalArgumentException("Match not found: " + matchId));
+        if (match.getStatus() == Match.Status.UNMATCHED) {
+            throw new org.springframework.security.access.AccessDeniedException("This match has ended.");
+        }
         if (match.getStatus() != Match.Status.APPROVED) {
             throw new org.springframework.security.access.AccessDeniedException("This match is not approved yet.");
         }
@@ -65,6 +68,9 @@ public class ChatService {
     public MessageDTO sendMessage(Long matchId, Long senderId, String content, String imageUrl) {
         Match match = matchRepository.findById(matchId)
                 .orElseThrow(() -> new IllegalArgumentException("Match not found: " + matchId));
+        if (match.getStatus() == Match.Status.UNMATCHED) {
+            throw new org.springframework.security.access.AccessDeniedException("This match has ended.");
+        }
         if (match.getStatus() != Match.Status.APPROVED) {
             throw new org.springframework.security.access.AccessDeniedException("This match is not approved yet.");
         }
@@ -185,6 +191,7 @@ public class ChatService {
                     .lastMessageSnippet(lastSnippet)
                     .lastMessageTime(lastTime)
                     .matchedAt(match.getMatchedAt())
+                    .status(match.getStatus() != null ? match.getStatus().name() : "APPROVED")
                     .build());
         }
 

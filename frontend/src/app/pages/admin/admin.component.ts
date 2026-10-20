@@ -679,6 +679,9 @@ import { AuthService } from '../../core/services/auth.service';
                           <strong style="color: #0f172a;">{{ c.userBName }}</strong>
                           <div style="font-size: 0.75rem; color: #64748b;">{{ c.userBEmail }}</div>
                         </div>
+                        <span *ngIf="c.status === 'UNMATCHED'" style="font-size: 0.72rem; padding: 2px 6px; background: #fee2e2; color: #dc2626; border-radius: 4px; font-weight: 700; margin-left: 6px;">
+                          💔 UNMATCHED
+                        </span>
                       </div>
                     </td>
                     <td>

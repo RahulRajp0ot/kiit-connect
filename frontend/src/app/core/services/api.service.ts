@@ -85,6 +85,10 @@ export class ApiService {
     return this.http.get<any[]>(`${this.base}/matches`);
   }
 
+  unmatch(matchId: number): Observable<any> {
+    return this.http.post<any>(`${this.base}/matches/${matchId}/unmatch`, {});
+  }
+
   // ── Chat ──────────────────────────────────────────────
   getChatHistory(matchId: number): Observable<any[]> {
     return this.http.get<any[]>(`${this.base}/chat/${matchId}`);

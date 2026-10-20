@@ -28,7 +28,7 @@ public class Match {
     private LocalDateTime matchedAt;
 
     public enum Status {
-        PENDING, APPROVED, REJECTED
+        PENDING, APPROVED, REJECTED, UNMATCHED
     }
 
     @Enumerated(EnumType.STRING)

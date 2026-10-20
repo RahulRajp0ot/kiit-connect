@@ -1,17 +1,18 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Router } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { ApiService } from '../../core/services/api.service';
 
 @Component({
   selector: 'app-matches',
   standalone: true,
   imports: [
-    CommonModule, MatCardModule, MatButtonModule, MatIconModule, MatProgressSpinnerModule
+    CommonModule, RouterLink, MatCardModule, MatButtonModule, MatIconModule, MatProgressSpinnerModule, MatSnackBarModule
   ],
   template: `
     <div class="matches-container">
@@ -42,9 +43,14 @@ import { ApiService } from '../../core/services/api.service';
             <h3>{{match.matchedUserName}}</h3>
             <p class="match-date">Matched {{formatDate(match.matchedAt)}}</p>
           </div>
-          <button mat-icon-button class="chat-btn" (click)="openChat(match); $event.stopPropagation()">
-            <mat-icon>chat_bubble</mat-icon>
-          </button>
+          <div class="match-actions" (click)="$event.stopPropagation()">
+            <button mat-icon-button class="chat-btn" (click)="openChat(match)" title="Open Chat">
+              <mat-icon>chat_bubble</mat-icon>
+            </button>
+            <button mat-icon-button class="unmatch-card-btn" (click)="unmatch(match)" title="Unmatch student">
+              <mat-icon>heart_broken</mat-icon>
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -123,6 +129,19 @@ import { ApiService } from '../../core/services/api.service';
       background: linear-gradient(135deg, #ff6b9d, #c44dff) !important;
       color: white !important;
     }
+    .match-actions {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .unmatch-card-btn {
+      color: #94a3b8 !important;
+      transition: color 0.2s, background 0.2s;
+    }
+    .unmatch-card-btn:hover {
+      color: #ef4444 !important;
+      background: #fee2e2 !important;
+    }
     @media (max-width: 600px) {
       .matches-container {
         padding: 16px 12px 20px;
@@ -155,7 +174,7 @@ export class MatchesComponent implements OnInit {
   matches: any[] = [];
   loading = true;
 
-  constructor(private api: ApiService, private router: Router) {}
+  constructor(private api: ApiService, private router: Router, private snack: MatSnackBar) {}
 
   ngOnInit() {
     this.api.getMatches().subscribe({
@@ -166,6 +185,21 @@ export class MatchesComponent implements OnInit {
 
   openChat(match: any) {
     this.router.navigate(['/chat', match.matchId]);
+  }
+
+  unmatch(match: any) {
+    if (!confirm(`Are you sure you want to unmatch with ${match.matchedUserName}? You won't be able to chat with each other anymore.`)) {
+      return;
+    }
+    this.api.unmatch(match.matchId).subscribe({
+      next: () => {
+        this.matches = this.matches.filter(m => m.matchId !== match.matchId);
+        this.snack.open(`Unmatched with ${match.matchedUserName}.`, 'OK', { duration: 3000 });
+      },
+      error: () => {
+        this.snack.open('Failed to unmatch. Please try again.', 'Dismiss', { duration: 3000 });
+      }
+    });
   }
 
   getAvatarUrl(name: string) {
